@@ -5,6 +5,8 @@ from functools import reduce # Valid in Python 2.6+, required in Python 3
 import operator
 from collections import deque
 import random
+import time
+from IPython.display import clear_output
 
 import Utils
 import tile_coding
@@ -16,44 +18,78 @@ class Discrete():
         self.reset()
         # Set learning parameters
         self.lr = .8
-        self.y = .95        
+        self.y = .95
+        self.epsilon = 1.0  # exploration rate
+        self.epsilon_min = 0.01
+        self.epsilon_decay = 0.995
         
     def reset(self):
-        self.Q = np.zeros([self.env.observation_space.n,self.env.action_space.n])
+        self.Q = np.zeros(shape=(self.env.observation_space.n, self.env.action_space.n))
+   
+    def choose_action(self, s, epsilon=None):
+        #Choose an action by greedily (with noise) picking from Q table
+        epsilon = epsilon if epsilon else self.epsilon
+        if np.random.rand() < epsilon:
+            return self.env.action_space.sample()
+        else:
+            return np.argmax(self.Q[s,:])
 
     def train(self, num_episodes = 2000):
         #create lists to contain total rewards and steps per episode
         jList = []
         rList = []
-        for i in tqdm_notebook(range(num_episodes)):
+        for ep in tqdm_notebook(range(num_episodes)):
             s = self.env.reset()
             rAll = 0
             d = False
-            j = 0
             #The Q-Table learning algorithm
-            while j < 99:
-                j+=1
-                #Choose an action by greedily (with noise) picking from Q table
-                a = np.argmax(self.Q[s,:] + np.random.randn(1, self.env.action_space.n)*(1./(i+1)))
+            for j in range(99):
                 #Get new state and reward from environment
+                a = self.choose_action(s)
                 s1,r,d,_ = self.env.step(a)
-                #Update Q-Table with new knowledge
-                self.Q[s,a] = self.Q[s,a] + self.lr*(r + self.y*np.max(self.Q[s1,:]) - self.Q[s,a])
+                
+                #Update Q-Table with new knowledge and prepare for next iteration
+                self.Q[s,a] = (1.0-self.lr)*self.Q[s,a] + self.lr*(r+self.y*np.max(self.Q[s1,:]))
                 rAll += r
                 s = s1
-                if d == True:
+                if d:
                     break
+                    
+            if self.epsilon > self.epsilon_min:
+                self.epsilon *= self.epsilon_decay
+
             jList.append(j)
             rList.append(rAll)
             
         return jList, rList
     
+    def test(self, num_episodes=1):
+        reward_list = []
+        for ep in tqdm_notebook(range(num_episodes)):
+            d = False
+            s = self.env.reset()
+            while not d:
+                clear_output(wait=True)
+                self.env.render()
+                time.sleep(.005)
+                a = self.choose_action(s, 0.0)
+                s,r,d,_ = self.env.step(a)
+            clear_output(wait=True)
+            self.env.render()
+            time.sleep(.25)
+            reward_list.append(r)
+        return reward_list
+    
 class DeepDiscrete():
-    def __init__(self, env, y=.99, e=.1):
+    def __init__(self, env, y=.99, e=1.0):
         self.env = env
-        self.y = y
-        self.e = e
         self.reset()
+        # Set learning parameters
+        self.lr = .8
+        self.y = y
+        self.epsilon = e  # exploration rate
+        self.epsilon_min = 0.01
+        self.epsilon_decay = 0.995
         
     class Model():
         def __init__(self, agent):
@@ -92,7 +128,7 @@ class DeepDiscrete():
                     j+=1
                     #Choose an action by greedily (with e chance of random action) from the Q-network
                     a,Q_pred = sess.run([self.model.tf_predict,self.model.tf_Q_predict],feed_dict={self.model.tf_state:np.identity(self.env.nS)[s:s+1]})
-                    if np.random.rand(1) < self.e:
+                    if np.random.rand(1) < self.epsilon:
                         a[0] = self.env.action_space.sample()
                     #Get new state and reward from environment
                     s1,r,d,_ = self.env.step(a[0])
@@ -108,7 +144,7 @@ class DeepDiscrete():
                     #Obtain maxQ' and set our target value for chosen action.
                     maxQ1 = np.max(Q1)
                     targetQ = Q_pred
-                    targetQ[0,a[0]] = r + self.y*maxQ1
+                    targetQ[0,a[0]] = (1.0-self.lr)*Q_pred[0,a] + self.lr*(r+self.y*maxQ1)
                     #Train our network using target and predicted Q values
                     _ = sess.run([self.model.updateModel],feed_dict={self.model.tf_state:np.identity(self.env.nS)[s:s+1],self.model.tf_target_q:targetQ})
                     total_reward += r
@@ -142,6 +178,7 @@ class DeepContinuous():
         self.state_shape = self._calculate_state_shape()
         
     def _encode_state(self, state):
+        return state
         scaled_state = MountainCarScaling(self.env, state)
         return tf.one_hot(tile_coding.tiles(self.iht, self.num_tilings, scaled_state), self.iht.size, dtype=tf.float32)
         
@@ -162,15 +199,16 @@ class DeepContinuous():
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((self._encode_state(state), action, reward, self._encode_state(next_state), done))
         
-    def choose_action(self, state):
-        if np.random.rand() <= self.epsilon:
+    def choose_action(self, state, epsilon=None):
+        epsilon = epsilon if epsilon else self.epsilon
+        if np.random.rand() <= epsilon:
             return random.randrange(self.env.action_space.n)
         encoded_state = self._encode_state(state)
         act_values = self.model.predict(encoded_state, batch_size=1, steps=1)
         return np.argmax(act_values[0])  # returns action
     
     def replay(self, batch_size):
-        minibatch = random.sample(self.memory, batch_size)
+        minibatch = random.sample(self.memory, min(batch_size, len(self.memory)))
         
         for state, action, reward, next_state, done in minibatch:
             if not done:
@@ -208,5 +246,18 @@ class DeepContinuous():
                 num_steps_list.append(j)
                 self.replay(32)
             print("Percent of succesful episodes: " + str(sum(reward_list)/num_episodes * 100) + "%")
-            return reward_list, num_steps_list
+            return num_steps_list, reward_list
         
+    def test(self):
+        with tf.Session() as sess:
+            s = self.env.reset()
+            d = False
+            while not d:
+                a = self.choose_action(s, 0.0)
+                s1,r,d,_ = self.env.step(a)
+                s = s1
+                
+                self.env.render()
+                time.sleep(.25)
+            
+            
