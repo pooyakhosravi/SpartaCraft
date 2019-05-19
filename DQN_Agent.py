@@ -122,8 +122,10 @@ class DeepDiscrete():
                 if render:
                     time.sleep(.01)
         print("Percent of succesful episodes: " + str(sum(reward_list)/num_episodes * 100) + "%")
-        return reward_list, num_steps_list
+        return num_steps_list, reward_list
 
+def MountainCarScaling(env, s):
+    return 10.0 * s / [env.max_position - env.min_position, env.max_speed + env.max_speed]
     
 class DeepContinuous():
     def __init__(self, env, tile_coding_size = 2048):
@@ -140,7 +142,8 @@ class DeepContinuous():
         self.state_shape = self._calculate_state_shape()
         
     def _encode_state(self, state):
-        return tf.one_hot(tile_coding.tiles(self.iht, self.num_tilings, state), self.iht.size, 0)
+        scaled_state = MountainCarScaling(self.env, state)
+        return tf.one_hot(tile_coding.tiles(self.iht, self.num_tilings, scaled_state), self.iht.size, dtype=tf.float32)
         
     def _calculate_state_shape(self):
         s = self.env.reset()
@@ -151,11 +154,9 @@ class DeepContinuous():
         
         model = tf.keras.Sequential()
         model.add(tf.keras.layers.Flatten())
-        model.add(tf.keras.layers.Dense(self.env.action_space.n, activation=tf.nn.relu))
-        model.add(tf.keras.layers.Dense(self.env.action_space.n, activation=None))
+        model.add(tf.keras.layers.Dense(self.env.action_space.n, activation=None, use_bias=False))
         model.compile('sgd', loss=tf.keras.losses.MeanSquaredError())
 
-        #tf_target_q = tf.placeholder(shape=[1,num_actions],dtype=tf.float32)
         return model
     
     def remember(self, state, action, reward, next_state, done):
@@ -164,20 +165,21 @@ class DeepContinuous():
     def choose_action(self, state):
         if np.random.rand() <= self.epsilon:
             return random.randrange(self.env.action_space.n)
-        encoded_state = self.encode_state(state)
-        act_values = self.model.predict(encoded_state)
+        encoded_state = self._encode_state(state)
+        act_values = self.model.predict(encoded_state, batch_size=1, steps=1)
         return np.argmax(act_values[0])  # returns action
     
     def replay(self, batch_size):
         minibatch = random.sample(self.memory, batch_size)
+        
         for state, action, reward, next_state, done in minibatch:
-            target = reward
             if not done:
-              target = reward + self.gamma * \
-                       np.amax(self.model.predict(next_state, steps=1)[0])
-            target_f = self.model.predict(state)
+                target = reward + self.gamma * np.amax(self.model.predict(next_state, batch_size=1, steps=1)[0])
+            else:
+                target = reward
+            target_f = self.model.predict(state, batch_size=1, steps=1)
             target_f[0][action] = target
-            self.model.fit(state, target_f, epochs=1, verbose=0)
+            self.model.fit(state, target_f, epochs=1, verbose=0, steps_per_epoch=1)
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
             
@@ -185,6 +187,7 @@ class DeepContinuous():
         num_steps_list = []
         reward_list = []
         with tf.Session() as sess:
+            sess.run(tf.global_variables_initializer())
             for i in tqdm_notebook(range(num_episodes)):
                 #Reset environment and get first new observation
                 s = self.env.reset()
@@ -192,7 +195,7 @@ class DeepContinuous():
                 d = False
                 j = 0
                 #The Q-Network
-                for j in tqdm_notebook(range(max_steps)):
+                for j in range(max_steps):
                     a = self.choose_action(s)
                     s1,r,d,_ = self.env.step(a)
                     self.remember(s, a, r, s1, d)
@@ -200,9 +203,9 @@ class DeepContinuous():
                     s = s1
                     total_reward += r
                     if d == True:
-                        #Reduce chance of random action as we train the model.
-                        e = 1./((i/50) + 10)
                         break
+                reward_list.append(total_reward)
+                num_steps_list.append(j)
                 self.replay(32)
             print("Percent of succesful episodes: " + str(sum(reward_list)/num_episodes * 100) + "%")
             return reward_list, num_steps_list
