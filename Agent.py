@@ -11,45 +11,89 @@ from IPython.display import clear_output
 import Utils
 import tile_coding
 
-class Discrete():
+class QNetwork():
     def __init__(self, env):
+        self.model = self._build_model(env)
+        
+    def _build_model(self, env):
+        Utils.tf_reset()
+        
+        model = tf.keras.Sequential()
+        model.add(tf.keras.layers.Flatten())
+        model.add(tf.keras.layers.Dense(env.action_space.n, activation=None, use_bias=False))
+        model.compile('sgd', loss=tf.keras.losses.MeanSquaredError())
+
+        return model
+    
+    def _encode_state(self, s):
+        encoded_state = np.expand_dims(np.array([s]), 0)
+        print(encoded_state, type(encoded_state), encoded_state.shape)
+        return encoded_state
+
+    def predict(self, s):
+        return self.model.predict(self._encode_state(s), batch_size=1, steps=1)[0]
+    
+    def update(self, s, a, s1, r, lr, y):
+        target_f = self.model.predict(self._encode_state(s))
+        target = (1.0-lr)*target_f[0][a] + lr*(r+y*np.max(self.predict(s1)))
+        target_f[0][a] = target
+        self.model.fit(self._encode_state(s), target_f, epochs=1, verbose=0, steps_per_epoch=1)
+
+class QTable():
+    def __init__(self, env):
+        self.reset(env)
+        
+    def reset(self, env):
+         #Initialize table with all zeros
+        self.Q = np.zeros(shape=(env.observation_space.n, env.action_space.n))
+        
+    def predict(self, s):
+        return self.Q[s,:]
+    
+    def update(self, s, a, s1, r, lr, y):
+        self.Q[s,a] = (1.0-lr)*self.Q[s,a] + lr*(r+y*np.max(self.predict(s1)))
+        
+    def render(self):
+        print(self.Q)
+
+class QLearning():
+    def __init__(self, env, q_function):
         self.env = env
-        #Initialize table with all zeros
-        self.reset()
         # Set learning parameters
         self.lr = .8
         self.y = .95
         self.epsilon = 1.0  # exploration rate
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
+        self.q_function = q_function
         
     def reset(self):
         self.Q = np.zeros(shape=(self.env.observation_space.n, self.env.action_space.n))
    
     def choose_action(self, s, epsilon=None):
-        #Choose an action by greedily (with noise) picking from Q table
+        # Assuming we have a decaying epsilon, we start by picking actions randomly and then pick based on q function
         epsilon = epsilon if epsilon else self.epsilon
         if np.random.rand() < epsilon:
             return self.env.action_space.sample()
         else:
-            return np.argmax(self.Q[s,:])
+            return np.argmax(self.q_function.predict(s))
 
-    def train(self, num_episodes = 2000):
-        #create lists to contain total rewards and steps per episode
+    def train(self, num_episodes = 2000, max_steps = 100):
+        # create lists to contain total rewards and steps per episode
         jList = []
         rList = []
         for ep in tqdm_notebook(range(num_episodes)):
             s = self.env.reset()
             rAll = 0
             d = False
-            #The Q-Table learning algorithm
-            for j in range(99):
-                #Get new state and reward from environment
+            for j in range(1, max_steps):
+                # Take action and get new state and reward from environment
                 a = self.choose_action(s)
                 s1,r,d,_ = self.env.step(a)
                 
-                #Update Q-Table with new knowledge and prepare for next iteration
-                self.Q[s,a] = (1.0-self.lr)*self.Q[s,a] + self.lr*(r+self.y*np.max(self.Q[s1,:]))
+                # Update Q-Table with new knowledge and prepare for next iteration
+                target = self.q_function.predict(s1)
+                self.q_function.update(s, a, s1, r, self.lr, self.y)
                 rAll += r
                 s = s1
                 if d:
@@ -79,86 +123,6 @@ class Discrete():
             time.sleep(.25)
             reward_list.append(r)
         return reward_list
-    
-class DeepDiscrete():
-    def __init__(self, env, y=.99, e=1.0):
-        self.env = env
-        self.reset()
-        # Set learning parameters
-        self.lr = .8
-        self.y = y
-        self.epsilon = e  # exploration rate
-        self.epsilon_min = 0.01
-        self.epsilon_decay = 0.995
-        
-    class Model():
-        def __init__(self, agent):
-            #These lines establish the feed-forward part of the network used to choose actions
-            self.tf_state = tf.placeholder(shape=[1,agent.env.nS],dtype=tf.float32)
-            self.tf_linear_model = tf.layers.Dense(units=4, use_bias=True, kernel_initializer=tf.random_uniform_initializer(0, 0.01))
-            self.tf_Q_predict = self.tf_linear_model(self.tf_state)
-            self.tf_predict = tf.argmax(self.tf_Q_predict,1)
-
-            #Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
-            self.tf_target_q = tf.placeholder(shape=[1,agent.env.nA],dtype=tf.float32)
-            self.loss = tf.reduce_sum(tf.square(self.tf_target_q - self.tf_Q_predict))
-            self.optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.1)
-            self.updateModel = self.optimizer.minimize(self.loss)
-
-            self.init = tf.global_variables_initializer()
-        
-    def reset(self):
-        Utils.tf_reset()
-        self.model = self.Model(self)
-        
-    def train(self, num_episodes=2000, max_steps=100, render=False):
-        #create lists to contain total rewards and steps per episode
-        num_steps_list = []
-        reward_list = []
-        with tf.Session() as sess:
-            sess.run(self.model.init)
-            for i in tqdm_notebook(range(num_episodes)):
-                #Reset environment and get first new observation
-                s = self.env.reset()
-                total_reward = 0
-                d = False
-                j = 0
-                #The Q-Network
-                while j < max_steps:
-                    j+=1
-                    #Choose an action by greedily (with e chance of random action) from the Q-network
-                    a,Q_pred = sess.run([self.model.tf_predict,self.model.tf_Q_predict],feed_dict={self.model.tf_state:np.identity(self.env.nS)[s:s+1]})
-                    if np.random.rand(1) < self.epsilon:
-                        a[0] = self.env.action_space.sample()
-                    #Get new state and reward from environment
-                    s1,r,d,_ = self.env.step(a[0])
-
-                    if render:
-                        display.clear_output(wait=True)
-                        print(f"Ep: {i}")
-                        env.render()
-                        time.sleep(.001)
-
-                    #Obtain the Q' values by feeding the new state through our network
-                    Q1 = sess.run(self.model.tf_Q_predict,feed_dict={self.model.tf_state:np.identity(16)[s1:s1+1]})
-                    #Obtain maxQ' and set our target value for chosen action.
-                    maxQ1 = np.max(Q1)
-                    targetQ = Q_pred
-                    targetQ[0,a[0]] = (1.0-self.lr)*Q_pred[0,a] + self.lr*(r+self.y*maxQ1)
-                    #Train our network using target and predicted Q values
-                    _ = sess.run([self.model.updateModel],feed_dict={self.model.tf_state:np.identity(self.env.nS)[s:s+1],self.model.tf_target_q:targetQ})
-                    total_reward += r
-                    s = s1
-                    if d == True:
-                        #Reduce chance of random action as we train the model.
-                        e = 1./((i/50) + 10)
-                        break
-                num_steps_list.append(j)
-                reward_list.append(total_reward)
-                if render:
-                    time.sleep(.01)
-        print("Percent of succesful episodes: " + str(sum(reward_list)/num_episodes * 100) + "%")
-        return num_steps_list, reward_list
 
 def MountainCarScaling(env, s):
     return 10.0 * s / [env.max_position - env.min_position, env.max_speed + env.max_speed]
