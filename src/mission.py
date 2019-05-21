@@ -55,7 +55,8 @@ root, canvas = cnv.init_canvas()
 #     import functools
 #     print = functools.partial(print, flush=True)
 
-if __name__ == '__main__':
+
+def run():
 
     # Create default Malmo objects:
     agent_host = MalmoPython.AgentHost()
@@ -85,6 +86,7 @@ if __name__ == '__main__':
             else:
                 time.sleep(2)
 
+
     # Loop until mission starts:
     print("Waiting for the mission to start ", end=' ')
     world_state = agent_host.getWorldState()
@@ -110,7 +112,7 @@ if __name__ == '__main__':
     agent_host.sendCommand("chat hello!")
     agent_host.sendCommand("hotbar.2 1")
     agent_host.sendCommand("hotbar.2 0")
-    agent_host.sendCommand("moveMouse 0 -200")
+    agent_host.sendCommand("moveMouse 0 -150")
 
     # Loop until mission ends:
     while world_state.is_mission_running:
@@ -142,3 +144,10 @@ if __name__ == '__main__':
     print()
     print("Mission ended")
     # Mission has ended.
+
+
+if __name__ == '__main__':
+    num_repeats = 100
+
+    for i in range(num_repeats):
+        run()
