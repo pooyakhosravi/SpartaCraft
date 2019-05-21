@@ -5,15 +5,15 @@ This file contains all the constants needed for the mission and other parts of p
 
 MOB_TYPE = "Pig"
 
-MS_PER_TICK = 30
+MS_PER_TICK = 10
 AGENT_TICK_RATE = 4 * MS_PER_TICK
 
 PLAYER_NAME = "Hunter"
 
 PLAYER_SPAWN = '<Placement x="0.5" y="207.0" z="0.5"/>'
 
-ENTITIES_SPAWN = {"Pig": 20, "Cow": 20}
-ITEMS_SPAWN = {"carrot": 30, "apple": 10}
+ENTITIES_SPAWN = {"Pig": 20, "Cow": 20, "Zombie":5}
+ITEMS_SPAWN = {} #{"carrot": 30, "apple": 10}
 
 
 COLORS = {"Pig": "#FFDAB9", "Cow": "#A52A2A", PLAYER_NAME: "#0000FF"}
