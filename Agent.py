@@ -18,25 +18,27 @@ class QNetwork():
         
     def _build_model(self):
         model = tf.keras.Sequential()
-        model.add(tf.keras.layers.Dense(self.env.action_space.n, activation=tf.keras.activations.relu, use_bias=True))
-        model.compile('adam', loss=tf.keras.losses.MeanSquaredError())
+        model.add(tf.keras.layers.Dense(self.env.action_space.n, activation=None, use_bias=True, kernel_initializer='he_normal'))
+        model.compile('SGD', loss=tf.keras.losses.MeanSquaredError())
         return model
     
     def _encode_state(self, s):
-        encoded_state = np.expand_dims(np.array([s]), 0)
+        encoded_state = tf.one_hot([s], self.env.observation_space.n, dtype=tf.float32)
+        #print(f"encoded_state shape: {encoded_state.shape} \n encoded_state: {encoded_state}")
         return encoded_state
 
     def predict(self, s):
-        return self.model.predict(self._encode_state(s), batch_size=1, steps=1)[0]
+        return self.model.predict(s, batch_size=1, steps=1)[0]
     
     def update(self, s, a, target, lr):
-        target_f = self.model.predict(self._encode_state(s))
+        target_f = self.model.predict(s, batch_size=1, steps=1)
+        #print(f"target_f shape: {target_f.shape}")
         target_f[0][a] = target
-        self.model.fit(self._encode_state(s), target_f, epochs=1, verbose=0, steps_per_epoch=1)
+        self.model.fit(s, target_f, epochs=1, verbose=0, steps_per_epoch=1)
         
     def render(self):
         for s in range(self.env.observation_space.n):
-            print(self.predict(s))
+            print(self.predict(self._encode_state(s)))
 
 class QTable():
     def __init__(self, env):
@@ -54,6 +56,9 @@ class QTable():
         
     def render(self):
         print(self.Q)
+        
+    def _encode_state(self, s):
+        return s
 
 class QLearning():
     def __init__(self, env, q_function):
@@ -78,7 +83,7 @@ class QLearning():
             return np.argmax(self.q_function.predict(s))
         
     def remember(self, state, action, reward, next_state, done):
-        self.memory.append((state, action, reward, next_state, done))
+        self.memory.append((self.q_function._encode_state(state), action, reward, self.q_function._encode_state(next_state), done))
         
     def replay(self, batch_size):
         minibatch = random.sample(self.memory, min(batch_size, len(self.memory)))
