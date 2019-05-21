@@ -16,7 +16,7 @@ ENTITIES_SPAWN = {"Pig": 20, "Cow": 20, "Zombie":5}
 ITEMS_SPAWN = {} #{"carrot": 30, "apple": 10}
 
 
-COLORS = {"Pig": "#FFDAB9", "Cow": "#A52A2A", PLAYER_NAME: "#0000FF"}
+COLORS = {"Pig": "#FFDAB9", "Cow": "#A52A2A","Zombie":"#800080", PLAYER_NAME: "#0000FF"}
 
 GENERATOR_STRING = "3;7,220*1,5*3,2;3;,biome_1" #"1;7,2x3,2,89,95:8;1"
 
