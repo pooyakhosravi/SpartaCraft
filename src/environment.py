@@ -84,6 +84,7 @@ def getMissionXML():
                         <Range name="entities" xrange="'''+str(c.ARENA_WIDTH)+'''" yrange="2" zrange="'''+str(c.ARENA_BREADTH)+'''" />
                     </ObservationFromNearbyEntities>
                     <HumanLevelCommands/>
+                    <ChatCommands/>
                 </AgentHandlers>
                 </AgentSection>
             </Mission>'''
