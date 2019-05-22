@@ -32,17 +32,11 @@ def getPlayerState(observed):
 
 
 def getState(observed):
-    is_alive = observed["IsAlive"]
-    life = observed["Life"]
-    xpos = observed["XPos"]
-    ypos = observed["YPos"]
-    zpos = observed["ZPos"]
-    pitch = observed["Pitch"]
-    yaw = observed["Yaw"]
+    damage_dealth = observed["DamageDealt"]
+    damage_taken = observed["DamageTaken"]
+    mobs_killed = observed["MobsKilled"]
 
-    
-
-    return observed
+    return (mobs_killed, damage_dealth, damage_taken)
 
 
 
@@ -114,11 +108,16 @@ def run():
     agent_host.sendCommand("hotbar.2 0")
     agent_host.sendCommand("moveMouse 0 -150")
 
+    is_start = True
+
+
     # Loop until mission ends:
     while world_state.is_mission_running:
-        print(".", end="")
+        # print(".", end="")
         time.sleep(c.AGENT_TICK_RATE / 1000)
         world_state = agent_host.getWorldState()
+        
+
 
         if True:
             a = action_space.random()
@@ -126,12 +125,24 @@ def run():
                 agent_host.sendCommand(moveactions[a])
             agent_host.sendCommand(a)
 
-
         if world_state.number_of_observations_since_last_state > 0:
+
             msg = world_state.observations[-1].text
 
             ob = json.loads(msg)
-            # print(getState(ob))
+
+            if is_start:
+                damage_dealth = ob["DamageDealt"]
+                damage_taken = ob["DamageTaken"]
+                mobs_killed = ob["MobsKilled"]
+                print(getState(ob))
+                is_start = False
+
+            dmg_dealth = ob["DamageDealt"] - damage_dealth
+            dmg_taken = ob["DamageTaken"] - damage_taken
+            killed = ob["MobsKilled"] - mobs_killed
+
+            print(f"dmg_dealth: {dmg_dealth}, dmg_taken: {dmg_taken}, mobs_killed: {killed}")
             if "entities" in ob:
                 entities = ob["entities"]
                 cnv.drawMobs(root, canvas, entities, True)
