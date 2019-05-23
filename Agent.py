@@ -18,21 +18,23 @@ class QNetwork():
         
     def _build_model(self):
         model = tf.keras.Sequential()
-        model.add(tf.keras.layers.Dense(self.env.action_space.n, activation=None, use_bias=True, kernel_initializer='he_normal'))
+        model.add(tf.keras.layers.Dense(self.env.action_space.n, activation=None, use_bias=False))
         model.compile('SGD', loss=tf.keras.losses.MeanSquaredError())
         return model
     
     def _encode_state(self, s):
-        encoded_state = tf.one_hot([s], self.env.observation_space.n, dtype=tf.float32)
+        encoded_state = np.identity(self.env.observation_space.n)[s:s+1]
         #print(f"encoded_state shape: {encoded_state.shape} \n encoded_state: {encoded_state}")
         return encoded_state
 
     def predict(self, s):
-        return self.model.predict(s, batch_size=1, steps=1)[0]
+        prediction = self.model.predict(s, batch_size=1, steps=1)[0]
+        #print(f"prediction: {prediction}, shape: {prediction.shape}")
+        return prediction
     
     def update(self, s, a, target, lr):
         target_f = self.model.predict(s, batch_size=1, steps=1)
-        #print(f"target_f shape: {target_f.shape}")
+        #print(f"target_f shape: {target_f.shape}, target_f[0] shape: {target_f[0].shape}")
         target_f[0][a] = target
         self.model.fit(s, target_f, epochs=1, verbose=0, steps_per_epoch=1)
         
@@ -80,7 +82,7 @@ class QLearning():
         if training and np.random.rand() < self.epsilon:
             return self.env.action_space.sample()
         else:
-            return np.argmax(self.q_function.predict(s))
+            return np.argmax(self.q_function.predict(self.q_function._encode_state(s)))
         
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((self.q_function._encode_state(state), action, reward, self.q_function._encode_state(next_state), done))
