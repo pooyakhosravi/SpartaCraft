@@ -8,8 +8,8 @@ import random
 import time
 from IPython.display import clear_output
 
-import Utils
-import tile_coding
+from src import Utils
+from src import tile_coding
 
 class QNetwork():
     def __init__(self, env):
