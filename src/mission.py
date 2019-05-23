@@ -96,20 +96,22 @@ def run():
 
 
     #moves = ["forward 1",  "attack 1", "attack 0",  "back 1", "moveMouse 0 100", "left 1", "right 1", "moveMouse 100 0", "moveMouse -100 0", "moveMouse 0 -100"]
-    moves = ["forward 1", "back 1", "left 1", "right 1", "attack 1", "attack 0", "moveMouse 100 0", "moveMouse -100 0"]
+    moves = ["forward 1", "back 1", "left 1", "right 1", "attack 1", "attack 0", "moveMouse 50 0", "moveMouse -50 0"]
     moveactions = {"forward 1": "back 0", "left 1": "right 0", "right 1": "left 0", "back 1": "forward 0"}
     action_space = ActionSpace(moves)
 
     print("Starting AGENT!!")
 
-    agent_host.sendCommand("chat /give @p diamond_sword 1 0 {ench:[{id:16,lvl:1000},{id:17,lvl:500},{id:19,lvl:300}]}")
-    agent_host.sendCommand("chat hello!")
-    agent_host.sendCommand("hotbar.2 1")
-    agent_host.sendCommand("hotbar.2 0")
+    agent_host.sendCommand("chat /give @p diamond_sword 1 0 {ench:[{id:16,lvl:1000}]}")
+    agent_host.sendCommand(f"chat Hello! This is Episode {i}")
+    agent_host.sendCommand("hotbar.1 1")
+    agent_host.sendCommand("hotbar.1 0")
     agent_host.sendCommand("moveMouse 0 -150")
 
     is_start = True
 
+
+    total_reward = 0
 
     # Loop until mission ends:
     while world_state.is_mission_running:
@@ -142,23 +144,39 @@ def run():
             dmg_taken = ob["DamageTaken"] - damage_taken
             killed = ob["MobsKilled"] - mobs_killed
 
+            entity_count = 0
+            for entity in ob["entities"]:
+                if entity["name"] in c.ENTITIES_SPAWN:
+                    entity_count += 1
+
+            if entity_count == 0:
+                agent_host.sendCommand("quit")
+            
+
             print(f"dmg_dealth: {dmg_dealth}, dmg_taken: {dmg_taken}, mobs_killed: {killed}")
             if "entities" in ob:
                 entities = ob["entities"]
                 cnv.drawMobs(root, canvas, entities, True)
 
+        if world_state.number_of_rewards_since_last_state > 0:
 
+            print(f"dmg_dealth: {dmg_dealth}, dmg_taken: {dmg_taken}, mobs_killed: {killed}")
+            total_reward += world_state.rewards[-1].getValue()
+
+            print(f"  total reward: {total_reward}")
 
         for error in world_state.errors:
             print("Error:",error.text)
 
-    print()
-    print("Mission ended")
-    # Mission has ended.
+    return total_reward
 
 
 if __name__ == '__main__':
     num_repeats = 100
 
     for i in range(num_repeats):
+        print(f"Running episode {i}::")
         run()
+        print()
+        print("::End episode {i}.")
+        # Mission has ended.

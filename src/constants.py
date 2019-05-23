@@ -5,23 +5,26 @@ This file contains all the constants needed for the mission and other parts of p
 
 MOB_TYPE = "Pig"
 
-MS_PER_TICK = 10
-AGENT_TICK_RATE = 4 * MS_PER_TICK
+MS_PER_TICK = 30
+AGENT_TICK_RATE = int(2.5 * MS_PER_TICK)
 
 PLAYER_NAME = "Hunter"
 
 PLAYER_SPAWN = '<Placement x="0.5" y="207.0" z="0.5"/>'
 
-ENTITIES_SPAWN = {"Pig": 20, "Cow": 20, "Zombie":5}
+ENTITIES_SPAWN = {"Cow": 1, "Zombie": 1} # {"Pig": 20, "Cow": 20, "Zombie":5}
 ITEMS_SPAWN = {} #{"carrot": 30, "apple": 10}
 
+DAMAGE_ENTITY_REWARDS = {"Cow": 1}
 
 COLORS = {"Pig": "#FFDAB9", "Cow": "#A52A2A","Zombie":"#800080", PLAYER_NAME: "#0000FF"}
 
 GENERATOR_STRING = "3;7,220*1,5*3,2;3;,biome_1" #"1;7,2x3,2,89,95:8;1"
 
-ARENA_WIDTH = 30
-ARENA_BREADTH = 30
+ARENA_WIDTH = 10
+ARENA_BREADTH = 10
+
+TIME_LIMIT = 300000 # 5 minutes
 
 # Display parameters:
 CANVAS_BORDER = 20
