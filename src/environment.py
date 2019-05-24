@@ -23,6 +23,7 @@ def getRandomMultiEntityXML(num_entity, mob_type):
 
 def getEntitySpawnXML():
     xml = ""
+    random.seed(0)
     for mob_type in c.ENTITIES_SPAWN:
         xml += getRandomMultiEntityXML(c.ENTITIES_SPAWN[mob_type], mob_type)
 

@@ -151,9 +151,12 @@ def MountainCarScaling(env, s):
     return 10.0 * s / [env.max_position - env.min_position, env.max_speed + env.max_speed]
 
 
-def Random():
+class Random():
     def __init__(self, env):
         self.env = env
+
+    def choose_action(self, s):
+        return self.env.action_space.sample()
         
     def test(self, num_episodes=1, render=False):
         reward_list = []
@@ -161,7 +164,8 @@ def Random():
             d = False
             s = self.env.reset()
             while not d:
-                a = self.choose_action(s, training=False)
+                a = self.choose_action(s)
                 s,r,d,_ = self.env.step(a)
+            print(f"Final: state: {s}, reward: {r}, done: {d}")
             reward_list.append(r)
         return reward_list

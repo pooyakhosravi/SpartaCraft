@@ -24,7 +24,8 @@ GENERATOR_STRING = "3;7,220*1,5*3,2;3;,biome_1" #"1;7,2x3,2,89,95:8;1"
 ARENA_WIDTH = 6
 ARENA_BREADTH = 6
 
-TIME_LIMIT = 300000 # 5 minutes
+
+TIME_LIMIT = 1000 * 60 * .5
 
 # Display parameters:
 CANVAS_BORDER = 20

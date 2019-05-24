@@ -7,9 +7,11 @@ try:
 except ImportError:
     import malmo.MalmoPython as MalmoPython
 
-import time, json
+import time, json, sys, os
+import numpy as np
 
 def startMission(max_retries = 20):
+    print("Creating Agent Host")
     agent_host = MalmoPython.AgentHost()
     my_mission = MalmoPython.MissionSpec(environment.getMissionXML(), True)
     my_mission_record = MalmoPython.MissionRecordSpec()
@@ -22,6 +24,7 @@ def startMission(max_retries = 20):
         except RuntimeError as e:
             if retry == max_retries - 1:
                 print("Error starting mission:",e)
+                sys.exit(-1)
             else:
                 time.sleep(2)
     
@@ -41,8 +44,7 @@ def startMission(max_retries = 20):
     print("Starting AGENT!!")
     agent_host.sendCommand("chat /give @p diamond_sword 1 0 {ench:[{id:16,lvl:1000},{id:17,lvl:500},{id:19,lvl:300}]}")
     agent_host.sendCommand("chat hello!")
-    agent_host.sendCommand("hotbar.2 1")
-    agent_host.sendCommand("hotbar.2 0")
+    agent_host.sendCommand("hotbar.1 1")   
     agent_host.sendCommand("moveMouse 0 -150")
     return agent_host
 
@@ -63,26 +65,26 @@ class BasicEnvironment():
     def __init__(self):
         self.action_space = BasicActionSpace()
         self.observation_space = BasicObservationSpace(c.ARENA_WIDTH, c.ARENA_BREADTH)
-        self.reset()
 
     def reset(self):
         self.agent_host = startMission()
-        self.world_state, ob = wait_for_observation(self.agent_host)
-        ob = get_observation(self.world_state)
-        self.damage_dealt = observed["DamageDealt"]
-        self.damage_taken = observed["DamageTaken"]
-        self.mobs_killed  = observed["MobsKilled"]
-        return self.get_state(ob)
+        self.world_state, observed = wait_for_observation(self.agent_host)
+        return self.get_state(observed)
 
     def step(self, a):
         action = self.action_space.actions[a]
-        print(f"Taking action: {a}, {action}")
-        agent_host.sendCommand(action)
-        self.world_state, ob = wait_for_observation(self.agent_host)
-        state = self.get_state(ob)
-        reward = self.get_reward(ob)
-        done = not self.world_state.is_mission_running or not observed["IsAlive"]
-        print(f"Step returned state, reward, done: {state}, {reward}, {done}")
+        #print(f"Taking action: {a}, {action}")
+        moveactions = {"forward 1": "back 0", "left 1": "right 0", "right 1": "left 0", "back 1": "forward 0"}
+        if action in moveactions.keys():
+            self.agent_host.sendCommand(moveactions[action])
+        self.agent_host.sendCommand(action)
+
+        self.world_state, observed = wait_for_observation(self.agent_host)
+        state = self.get_state(observed)
+        reward = self.get_reward()
+        done = self.get_done(observed)
+
+        #print(f"state: {state}, reward: {reward}, done: {done}")
         return state, reward, done, None
 
     def get_state(self, observed):
@@ -93,29 +95,35 @@ class BasicEnvironment():
         pitch = observed["Pitch"]
         yaw = observed["Yaw"]
 
-        linearized_x = np.round(xpos + c.ARENA_WIDTH // 2)
-        linearized_z = np.round(zpos + c.ARENA_BREADTH // 2)
-
-        state = linearized_x * c.ARENA_WIDTH + linearized_z
+        x_range = c.ARENA_WIDTH + .4
+        z_range = c.ARENA_BREADTH + .4
+        x_min = .3 - c.ARENA_WIDTH // 2
+        z_min = .3 - c.ARENA_BREADTH // 2
+        
+        x_index = int((xpos - x_min) / x_range * c.ARENA_WIDTH)
+        z_index = int((zpos - z_min) / z_range * c.ARENA_BREADTH)
+        state = x_index * c.ARENA_WIDTH + z_index
         if (state < 0 or state > (c.ARENA_BREADTH * c.ARENA_WIDTH)):
-            print(f"State: {state} is invalid. Brennan Sucks at coding")
+            print(f"State: {state} with indices {x_index} {z_index} is invalid. xpos {xpos}, zpos {zpos}")
         return state
 
-    def get_reward(self, observed):
-        reward = -1.0
-        damage_dealt = observed["DamageDealt"]
-        damage_taken = observed["DamageTaken"]
-        mobs_killed = observed["MobsKilled"]
+    def get_reward(self):
+        if self.world_state.number_of_rewards_since_last_state > 0:
+            #print(f"dmg_dealt: {dmg_dealt}, dmg_taken: {dmg_taken}, mobs_killed: {mobs_killed}")
+            reward = self.world_state.rewards[-1].getValue()
+            #print(f"Got reward: {reward}")
+            return reward
+        return -1.0
 
-        # Award Based on Deltas
-        reward += (damage_dealt - self.damage_dealt) * 2.0
-        reward += (damage_taken - self.damage_taken) * -5.0
-        reward += (mobs_killed - self.mobs_killed) * 100.0
+    def get_done(self, ob):
+        entity_count = 0
+        for entity in ob["entities"]:
+            if entity["name"] in c.ENTITIES_SPAWN:
+                entity_count += 1
 
-        # Update
-        self.damage_dealt = damage_dealt
-        self.damage_taken = damage_taken
-        self.mobs_killed = mobs_killed
-        return reward
+        if entity_count == 0 or not self.world_state.is_mission_running or not ob["IsAlive"]:
+            self.agent_host.sendCommand("quit")
+            return True
+        return False
 
     

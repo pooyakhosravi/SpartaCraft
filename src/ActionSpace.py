@@ -6,8 +6,7 @@ class ActionSpace:
         self.n = len(actions)
     
     def sample(self):
-        return random.choice(self.actions)
-
+        return random.randint(0, self.n - 1)
     
 class BasicActionSpace(ActionSpace):
     def __init__(self):
