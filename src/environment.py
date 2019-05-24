@@ -1,5 +1,5 @@
 import random
-import constants as c
+import src.constants as c
 
 def getRandomMultiItemXML(num_item, item_type):
     ''' Build an XML string that contains some randomly positioned goal items'''

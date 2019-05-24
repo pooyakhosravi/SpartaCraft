@@ -1,4 +1,11 @@
-from ActionSpace import *
+from src.ActionSpace import *
+import src.environment as environment
+try:
+    import MalmoPython
+except ImportError:
+    import malmo.MalmoPython as MalmoPython
+
+import time
 
 def startMission(max_retries = 20):
     agent_host = MalmoPython.AgentHost()
@@ -28,8 +35,8 @@ def startMission(max_retries = 20):
 
     print()
     print("Mission running ", end=' ')
-    self.action_space = BasicActionSpace()
-    self.agent_host = startMission()
+    
+    agent_host = startMission()
 
     print("Starting AGENT!!")
 
@@ -38,6 +45,7 @@ def startMission(max_retries = 20):
     agent_host.sendCommand("hotbar.2 1")
     agent_host.sendCommand("hotbar.2 0")
     agent_host.sendCommand("moveMouse 0 -150")
+    return agent_host
 
 def get_observation(world_state):
     msg = world_state.observations[-1].text
@@ -46,6 +54,7 @@ def get_observation(world_state):
 
 class BasicEnvironment():
     def __init__(self):
+        self.action_space = BasicActionSpace()
         self.reset()
 
     def reset(self):
