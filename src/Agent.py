@@ -149,3 +149,19 @@ class QLearning():
 
 def MountainCarScaling(env, s):
     return 10.0 * s / [env.max_position - env.min_position, env.max_speed + env.max_speed]
+
+
+def Random():
+    def __init__(self, env):
+        self.env = env
+        
+    def test(self, num_episodes=1, render=False):
+        reward_list = []
+        for ep in tqdm_notebook(range(num_episodes)):
+            d = False
+            s = self.env.reset()
+            while not d:
+                a = self.choose_action(s, training=False)
+                s,r,d,_ = self.env.step(a)
+            reward_list.append(r)
+        return reward_list

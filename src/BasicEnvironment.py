@@ -1,11 +1,13 @@
-from src.ActionSpace import *
+from src.ActionSpace import BasicActionSpace
+from src.ObservationSpace import BasicObservationSpace
 import src.environment as environment
+import src.constants as c
 try:
     import MalmoPython
 except ImportError:
     import malmo.MalmoPython as MalmoPython
 
-import time
+import time, json
 
 def startMission(max_retries = 20):
     agent_host = MalmoPython.AgentHost()
@@ -36,10 +38,7 @@ def startMission(max_retries = 20):
     print()
     print("Mission running ", end=' ')
     
-    agent_host = startMission()
-
     print("Starting AGENT!!")
-
     agent_host.sendCommand("chat /give @p diamond_sword 1 0 {ench:[{id:16,lvl:1000},{id:17,lvl:500},{id:19,lvl:300}]}")
     agent_host.sendCommand("chat hello!")
     agent_host.sendCommand("hotbar.2 1")
@@ -47,41 +46,43 @@ def startMission(max_retries = 20):
     agent_host.sendCommand("moveMouse 0 -150")
     return agent_host
 
-def get_observation(world_state):
+def wait_for_observation(agent_host):
+    do_while_emulator = True
+    while True:
+        time.sleep(c.AGENT_TICK_RATE / 1000) 
+        world_state = agent_host.getWorldState()
+        for error in world_state.errors:
+            print("Error:",error.text)
+        if world_state.number_of_observations_since_last_state > 0:
+            break
     msg = world_state.observations[-1].text
     ob = json.loads(msg)
-    return ob
+    return world_state, ob
 
 class BasicEnvironment():
     def __init__(self):
         self.action_space = BasicActionSpace()
+        self.observation_space = BasicObservationSpace(c.ARENA_WIDTH, c.ARENA_BREADTH)
         self.reset()
 
     def reset(self):
         self.agent_host = startMission()
-        self.world_state = self.agent_host.getWorldState()
+        self.world_state, ob = wait_for_observation(self.agent_host)
         ob = get_observation(self.world_state)
         self.damage_dealt = observed["DamageDealt"]
         self.damage_taken = observed["DamageTaken"]
         self.mobs_killed  = observed["MobsKilled"]
         return self.get_state(ob)
 
-    def step(self, action):
+    def step(self, a):
+        action = self.action_space.actions[a]
+        print(f"Taking action: {a}, {action}")
         agent_host.sendCommand(action)
-        
-        do_while_emulator = False
-        while do_while_emulator and self.world_state.number_of_observations_since_last_state < 0:
-            time.sleep(c.AGENT_TICK_RATE / 1000) 
-            self.world_state = agent_host.getWorldState()
-            for error in self.world_state.errors:
-                print("Error:",error.text)
-            do_while_emulator = True
-        
-        ob = get_observation(self.world_state)
+        self.world_state, ob = wait_for_observation(self.agent_host)
         state = self.get_state(ob)
         reward = self.get_reward(ob)
         done = not self.world_state.is_mission_running or not observed["IsAlive"]
-            
+        print(f"Step returned state, reward, done: {state}, {reward}, {done}")
         return state, reward, done, None
 
     def get_state(self, observed):
@@ -92,7 +93,13 @@ class BasicEnvironment():
         pitch = observed["Pitch"]
         yaw = observed["Yaw"]
 
-        return (life, xpos, ypos, zpos, pitch, yaw)
+        linearized_x = np.round(xpos + c.ARENA_WIDTH // 2)
+        linearized_z = np.round(zpos + c.ARENA_BREADTH // 2)
+
+        state = linearized_x * c.ARENA_WIDTH + linearized_z
+        if (state < 0 or state > (c.ARENA_BREADTH * c.ARENA_WIDTH)):
+            print(f"State: {state} is invalid. Brennan Sucks at coding")
+        return state
 
     def get_reward(self, observed):
         reward = -1.0
