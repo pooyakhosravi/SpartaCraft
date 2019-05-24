@@ -42,7 +42,7 @@ def startMission(max_retries = 20):
     print("Mission running ", end=' ')
     
     print("Starting AGENT!!")
-    agent_host.sendCommand("chat /give @p diamond_sword 1 0 {ench:[{id:16,lvl:1000},{id:17,lvl:500},{id:19,lvl:300}]}")
+    agent_host.sendCommand("chat /give @p diamond_sword 1 0 {ench:[{id:16,lvl:1000}]}")
     agent_host.sendCommand("chat hello!")
     agent_host.sendCommand("hotbar.1 1")   
     agent_host.sendCommand("moveMouse 0 -150")

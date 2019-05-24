@@ -122,7 +122,7 @@ def run():
 
 
         if True:
-            a = action_space.random()
+            a = action_space.sample()
             if a in moveactions:
                 agent_host.sendCommand(moveactions[a])
             agent_host.sendCommand(a)
