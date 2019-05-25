@@ -48,7 +48,7 @@ def getMissionXML():
             <Mission xmlns="http://ProjectMalmo.microsoft.com" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
                 <About>
-                <Summary>Hello world!</Summary>
+                <Summary>Colosseum World!</Summary>
                 </About>
                 <ModSettings>
                     <MsPerTick>{c.MS_PER_TICK}</MsPerTick>
@@ -83,9 +83,6 @@ def getMissionXML():
                 <Name>{c.PLAYER_NAME}</Name>
                 <AgentStart>
                     {c.PLAYER_SPAWN}
-                    <Inventory>
-                        
-                    </Inventory>
                 </AgentStart>
                 <AgentHandlers>
 
