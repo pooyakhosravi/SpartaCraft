@@ -1,5 +1,5 @@
 import tkinter as tk
-import constants as c
+import src.constants as c
 
 def init_canvas():
     root = tk.Tk()
