@@ -3,7 +3,7 @@ from src.ObservationSpace import BasicObservationSpace
 import src.environment as environment
 import src.constants as c
 try:
-    import MalmoPython
+    import src.MalmoPython as MalmoPython
 except ImportError:
     import malmo.MalmoPython as MalmoPython
 
@@ -15,6 +15,9 @@ def startMission(max_retries = 20):
     agent_host = MalmoPython.AgentHost()
     my_mission = MalmoPython.MissionSpec(environment.getMissionXML(), True)
     my_mission_record = MalmoPython.MissionRecordSpec()
+
+#     my_mission.requestVideo(1200,720)
+#     my_mission_record.recordMP4(30, 2000000)
 
     # Attempt to start a mission:
     for retry in range(max_retries):
@@ -43,20 +46,26 @@ def startMission(max_retries = 20):
     
     print("Starting AGENT!!")
     agent_host.sendCommand("chat /give @p diamond_sword 1 0 {ench:[{id:16,lvl:1000}]}")
-    agent_host.sendCommand("chat hello!")
-    agent_host.sendCommand("hotbar.1 1")   
+    agent_host.sendCommand(f"chat Here we go again!")
+    agent_host.sendCommand("hotbar.1 1")
+    agent_host.sendCommand("hotbar.1 0")
     agent_host.sendCommand("moveMouse 0 -150")
     return agent_host
+
 
 def wait_for_observation(agent_host):
     do_while_emulator = True
     while True:
-        time.sleep(c.AGENT_TICK_RATE / 1000) 
-        world_state = agent_host.getWorldState()
+        # print(world_state)
+        time.sleep(c.AGENT_TICK_RATE / 1000)
+        world_state = agent_host.getWorldState() 
         for error in world_state.errors:
             print("Error:",error.text)
         if world_state.number_of_observations_since_last_state > 0:
             break
+        if not world_state.is_mission_running:
+            return world_state, None
+
     msg = world_state.observations[-1].text
     ob = json.loads(msg)
     return world_state, ob
@@ -68,26 +77,31 @@ class BasicEnvironment():
 
     def reset(self):
         self.agent_host = startMission()
+        world_state = self.agent_host.getWorldState()
         self.world_state, observed = wait_for_observation(self.agent_host)
         return self.get_state(observed)
 
     def step(self, a):
         action = self.action_space.actions[a]
-        #print(f"Taking action: {a}, {action}")
+        # print(f"Taking action: {a}, {action}")
         moveactions = {"forward 1": "back 0", "left 1": "right 0", "right 1": "left 0", "back 1": "forward 0"}
         if action in moveactions.keys():
             self.agent_host.sendCommand(moveactions[action])
         self.agent_host.sendCommand(action)
-
+        
         self.world_state, observed = wait_for_observation(self.agent_host)
         state = self.get_state(observed)
         reward = self.get_reward()
         done = self.get_done(observed)
 
-        #print(f"state: {state}, reward: {reward}, done: {done}")
+        # print(f"state: {state}, reward: {reward}, done: {done}")
         return state, reward, done, None
-
+    
+    
     def get_state(self, observed):
+        if observed == None:
+            return None
+
         life = observed["Life"]
         xpos = observed["XPos"]
         ypos = observed["YPos"]
@@ -107,21 +121,26 @@ class BasicEnvironment():
             print(f"State: {state} with indices {x_index} {z_index} is invalid. xpos {xpos}, zpos {zpos}")
         return state
 
+
     def get_reward(self):
         if self.world_state.number_of_rewards_since_last_state > 0:
             #print(f"dmg_dealt: {dmg_dealt}, dmg_taken: {dmg_taken}, mobs_killed: {mobs_killed}")
             reward = self.world_state.rewards[-1].getValue()
-            #print(f"Got reward: {reward}")
+            # print(f"Got reward: {reward}")
             return reward
         return -1.0
 
+
     def get_done(self, ob):
+        if ob == None:
+            return True
+        
         entity_count = 0
         for entity in ob["entities"]:
             if entity["name"] in c.ENTITIES_SPAWN:
                 entity_count += 1
 
-        if entity_count == 0 or not self.world_state.is_mission_running or not ob["IsAlive"]:
+        if entity_count == 0 or not self.world_state.is_mission_running or not ob["IsAlive"] or ob['Life'] == 0:
             self.agent_host.sendCommand("quit")
             return True
         return False
