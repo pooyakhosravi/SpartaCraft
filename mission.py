@@ -69,17 +69,18 @@ def run():
 
 
     print(c.RECORD_FILENAME)
-    my_clients = MalmoPython.ClientPool()
-    my_clients.add(MalmoPython.ClientInfo('127.0.0.1', 10000))
+    # my_clients = MalmoPython.ClientPool()
+    # my_clients.add(MalmoPython.ClientInfo('127.0.0.1', 10000))
 
-    my_mission.requestVideo(800,600)
-    my_mission_record.recordMP4(30, 2000000)
+    # my_mission.requestVideo(800,600)
+    # my_mission_record.recordMP4(30, 2000000)
 
     # Attempt to start a mission:
     max_retries = 20
     for retry in range(max_retries):
         try:
-            agent_host.startMission( my_mission, my_clients, my_mission_record, 0, "some_string")
+            # agent_host.startMission( my_mission, my_clients, my_mission_record, 0, "Hunter")
+            agent_host.startMission(my_mission, my_mission_record)
             break
         except RuntimeError as e:
             if retry == max_retries - 1:
@@ -138,7 +139,6 @@ def run():
         if world_state.number_of_observations_since_last_state > 0:
 
             msg = world_state.observations[-1].text
-
             ob = json.loads(msg)
 
             if is_start:
@@ -148,9 +148,9 @@ def run():
                 print(getState(ob))
                 is_start = False
 
-            dmg_dealth = ob["DamageDealt"] - damage_dealth
-            dmg_taken = ob["DamageTaken"] - damage_taken
-            killed = ob["MobsKilled"] - mobs_killed
+            damage_dealth = ob["DamageDealt"] - damage_dealth
+            damage_taken = ob["DamageTaken"] - damage_taken
+            mobs_killed = ob["MobsKilled"] - mobs_killed
 
             entity_count = 0
             for entity in ob["entities"]:
@@ -161,18 +161,19 @@ def run():
                 agent_host.sendCommand("quit")
             
 
-            print(f"dmg_dealth: {dmg_dealth}, dmg_taken: {dmg_taken}, mobs_killed: {killed}")
+            print(f"dmg_dealth: {damage_dealth}, dmg_taken: {damage_taken}, mobs_killed: {mobs_killed}")
             if "entities" in ob:
                 entities = ob["entities"]
                 cnv.drawMobs(root, canvas, entities, True)
 
         if world_state.number_of_rewards_since_last_state > 0:
 
-            print(f"dmg_dealth: {dmg_dealth}, dmg_taken: {dmg_taken}, mobs_killed: {killed}")
             total_reward += world_state.rewards[-1].getValue()
+            
+        else:
+            total_reward += -1.0
 
-            print(f"  total reward: {total_reward}")
-
+        print(f"  total reward: {total_reward}")
         for error in world_state.errors:
             print("Error:",error.text)
 
@@ -186,5 +187,5 @@ if __name__ == '__main__':
         print(f"Running episode {i}::")
         run()
         print()
-        print("::End episode {i}.")
+        print(f"::End episode {i}.")
         # Mission has ended.
