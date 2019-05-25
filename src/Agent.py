@@ -162,10 +162,13 @@ class Random():
         reward_list = []
         for ep in tqdm_notebook(range(num_episodes)):
             d = False
+            reward = 0
             s = self.env.reset()
             while not d:
                 a = self.choose_action(s)
                 s,r,d,_ = self.env.step(a)
+                reward += r
+                print(f'{r}, ', end='')
             print(f"Final: state: {s}, reward: {r}, done: {d}")
-            reward_list.append(r)
+            reward_list.append(reward)
         return reward_list
