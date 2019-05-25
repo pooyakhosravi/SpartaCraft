@@ -82,10 +82,10 @@ def getMissionXML():
                 <AgentSection mode="Survival">
                 <Name>{c.PLAYER_NAME}</Name>
                 <AgentStart>
+                    <Inventory />
                     {c.PLAYER_SPAWN}
                 </AgentStart>
                 <AgentHandlers>
-
                     
                     <ObservationFromFullStats/>
                     <ObservationFromNearbyEntities>
