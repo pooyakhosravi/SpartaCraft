@@ -10,8 +10,9 @@ except ImportError:
 import time, json, sys, os
 import numpy as np
 
-def startMission(max_retries = 20):
-    print("Creating Agent Host")
+def startMission(max_retries = 20, debug=False):
+    if debug:
+        print("Creating Agent Host")
     agent_host = MalmoPython.AgentHost()
     my_mission = MalmoPython.MissionSpec(environment.getMissionXML(), True)
     my_mission_record = MalmoPython.MissionRecordSpec()
@@ -32,7 +33,8 @@ def startMission(max_retries = 20):
                 time.sleep(2)
     
     # Loop until mission starts:
-    print("Waiting for the mission to start ", end=' ')
+    if debug:
+        print("Waiting for the mission to start ", end=' ')
     world_state = agent_host.getWorldState()
     while not world_state.has_mission_begun:
         print(".", end="")
@@ -41,10 +43,10 @@ def startMission(max_retries = 20):
         for error in world_state.errors:
             print("Error:",error.text)
 
-    print()
-    print("Mission running ", end=' ')
-    
-    print("Starting AGENT!!")
+    if debug:
+        print()
+        print("Mission running ", end=' ')
+        print("Starting AGENT!!")
     agent_host.sendCommand("chat /give @p diamond_sword 1 0 {ench:[{id:16,lvl:1000}]}")
     agent_host.sendCommand(f"chat Here we go again!")
     agent_host.sendCommand("hotbar.1 1")
@@ -72,8 +74,9 @@ def wait_for_observation(agent_host):
 
 class BasicEnvironment():
     def __init__(self):
+        self.scale_factor = 2
         self.action_space = BasicActionSpace()
-        self.observation_space = BasicObservationSpace(c.ARENA_WIDTH, c.ARENA_BREADTH)
+        self.observation_space = BasicObservationSpace(c.ARENA_WIDTH * self.scale_factor, c.ARENA_BREADTH * self.scale_factor)
 
     def reset(self):
         self.agent_host = startMission()
@@ -114,10 +117,10 @@ class BasicEnvironment():
         x_min = .3 - c.ARENA_WIDTH // 2
         z_min = .3 - c.ARENA_BREADTH // 2
         
-        x_index = int((xpos - x_min) / x_range * c.ARENA_WIDTH)
-        z_index = int((zpos - z_min) / z_range * c.ARENA_BREADTH)
-        state = x_index * c.ARENA_WIDTH + z_index
-        if (state < 0 or state > (c.ARENA_BREADTH * c.ARENA_WIDTH)):
+        x_index = int((xpos - x_min) / x_range * c.ARENA_WIDTH * self.scale_factor)
+        z_index = int((zpos - z_min) / z_range * c.ARENA_BREADTH * self.scale_factor)
+        state = x_index * c.ARENA_WIDTH * self.scale_factor + z_index
+        if (state < 0 or state > self.observation_space.n):
             print(f"State: {state} with indices {x_index} {z_index} is invalid. xpos {xpos}, zpos {zpos}")
         return state
 

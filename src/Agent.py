@@ -24,6 +24,7 @@ class QNetwork():
     
     def _encode_state(self, s):
         encoded_state = np.identity(self.env.observation_space.n)[s:s+1]
+        #encoded_state = tf.one_hot([s], self.env.observation_space.n)
         #print(f"encoded_state shape: {encoded_state.shape} \n encoded_state: {encoded_state}")
         return encoded_state
 
