@@ -65,13 +65,21 @@ def run():
         exit(0)
 
     my_mission = MalmoPython.MissionSpec(environment.getMissionXML(), True)
-    my_mission_record = MalmoPython.MissionRecordSpec()
+    my_mission_record = MalmoPython.MissionRecordSpec(c.RECORD_FILENAME)
+
+
+    print(c.RECORD_FILENAME)
+    my_clients = MalmoPython.ClientPool()
+    my_clients.add(MalmoPython.ClientInfo('127.0.0.1', 10000))
+
+    my_mission.requestVideo(600,360)
+    my_mission_record.recordMP4(30, 2000000)
 
     # Attempt to start a mission:
     max_retries = 20
     for retry in range(max_retries):
         try:
-            agent_host.startMission( my_mission, my_mission_record )
+            agent_host.startMission( my_mission, my_clients, my_mission_record, 0, "some_string")
             break
         except RuntimeError as e:
             if retry == max_retries - 1:
