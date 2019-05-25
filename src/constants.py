@@ -17,7 +17,7 @@ PLAYER_NAME = "Hunter"
 
 PLAYER_SPAWN = '<Placement x="0.5" y="207.0" z="0.5"/>'
 
-ENTITIES_SPAWN = {"Cow": 0, "Zombie": 2} # {"Pig": 20, "Cow": 20, "Zombie":5}
+ENTITIES_SPAWN = {"Cow": 2, "Zombie": 0} # {"Pig": 20, "Cow": 20, "Zombie":5}
 ITEMS_SPAWN = {} #{"carrot": 30, "apple": 10}
 
 DAMAGE_ENTITY_REWARDS = {"Cow": 1, "Zombie": 1}
@@ -26,8 +26,8 @@ COLORS = {"Pig": "#FFDAB9", "Cow": "#A52A2A","Zombie":"#800080", PLAYER_NAME: "#
 
 GENERATOR_STRING = "3;7,220*1,5*3,2;3;,biome_1" #"1;7,2x3,2,89,95:8;1"
 
-ARENA_WIDTH = 12
-ARENA_BREADTH = 12
+ARENA_WIDTH = 6
+ARENA_BREADTH = 6
 
 
 TIME_LIMIT = int(1000 * 60 * .5)
