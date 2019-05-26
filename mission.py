@@ -8,8 +8,8 @@ import json
 import src.constants as c
 import random
 import tkinter as tk
-import src.canvas as cnv
-import src.environment as environment
+from src.canvas import Canvas
+from src.environment import MalmoEnvironment
 from src.ActionSpace import ActionSpace
 
 try:
@@ -40,7 +40,7 @@ def getState(observed):
 
 
 
-root, canvas = cnv.init_canvas()
+canvas = Canvas().init_canvas()
 
 
 # if sys.version_info[0] == 2:
@@ -64,6 +64,7 @@ def run():
         print(agent_host.getUsage())
         exit(0)
 
+    environment = MalmoEnvironment()
     my_mission = MalmoPython.MissionSpec(environment.getMissionXML(), True)
     my_mission_record = MalmoPython.MissionRecordSpec(c.RECORD_FILENAME)
 
@@ -164,7 +165,7 @@ def run():
             print(f"dmg_dealth: {damage_dealth}, dmg_taken: {damage_taken}, mobs_killed: {mobs_killed}")
             if "entities" in ob:
                 entities = ob["entities"]
-                cnv.drawMobs(root, canvas, entities, True)
+                canvas.drawMobs(entities, True)
 
         if world_state.number_of_rewards_since_last_state > 0:
 
