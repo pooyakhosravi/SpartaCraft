@@ -116,6 +116,7 @@ class MalmoEnvironment:
                             <DrawCuboid {self.getCorner("1",True,True,y=207)} {self.getCorner("2",False,False,y=226)} type="air"/>
                             {self.getItemSpawnXML()}
                             {self.getEntitySpawnWithPositionXML()}
+                            {self.getEntityRandomSpawnXML()}
                         </DrawingDecorator>
                         <ServerQuitWhenAnyAgentFinishes />
                         <ServerQuitFromTimeUp timeLimitMs="{self.TIME_LIMIT}" description="times_up"/>
