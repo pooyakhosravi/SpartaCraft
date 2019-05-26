@@ -38,7 +38,7 @@ def startMission(max_retries = 20, debug=False):
     world_state = agent_host.getWorldState()
     while not world_state.has_mission_begun:
         print(".", end="")
-        time.sleep(0.1)
+        time.sleep(10 * c.MS_PER_TICK / 1000)
         world_state = agent_host.getWorldState()
         for error in world_state.errors:
             print("Error:",error.text)

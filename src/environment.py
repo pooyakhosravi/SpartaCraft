@@ -21,7 +21,21 @@ def getRandomMultiEntityXML(num_entity, mob_type):
         xml += f'<DrawEntity x="{x}" y="{y}" z="{z}" type="{mob_type}" yaw="0"/>'
     return xml
 
-def getEntitySpawnXML():
+def getEntityAtPosition(mob_type, positions):
+    ''' Build an XML for entities, like zombies and animals, at given positions'''
+    xml = ""
+    for pos in positions:
+        xml += f'<DrawEntity x="{pos[0]}" y="{pos[1]}" z="{pos[2]}" type="{mob_type}" yaw="-180"/>'
+    return xml
+
+def getEntitySpawnWithPositionXML():
+    xml = ""
+    for mob_type, positions in c.ENTITIES_SPAWN_WITH_POSITION.items():
+        xml += getEntityAtPosition(mob_type, positions)
+
+    return xml
+
+def getEntityRandomSpawnXML():
     xml = ""
     random.seed(0)
     for mob_type in c.ENTITIES_SPAWN:
@@ -42,6 +56,7 @@ def getRewards():
     for entity in c.DAMAGE_ENTITY_REWARDS:
         xml += f'''<Mob type="{entity}" reward="{c.DAMAGE_ENTITY_REWARDS[entity]}"/>'''
     return xml
+
 
 def getMissionXML():
     return f'''<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
@@ -71,7 +86,7 @@ def getMissionXML():
                         <DrawCuboid {c.getCorner("1",True,True,y=206, expand=1)} {c.getCorner("2",False,False,y=226, expand=1)} type="barrier"/>
                         <DrawCuboid {c.getCorner("1",True,True,y=207)} {c.getCorner("2",False,False,y=226)} type="air"/>
                         {getItemSpawnXML()}
-                        {getEntitySpawnXML()}
+                        {getEntitySpawnWithPositionXML()}
                     </DrawingDecorator>
                     <ServerQuitWhenAnyAgentFinishes />
                     <ServerQuitFromTimeUp timeLimitMs="{c.TIME_LIMIT}" description="times_up"/>
@@ -82,7 +97,7 @@ def getMissionXML():
                 <AgentSection mode="Survival">
                 <Name>{c.PLAYER_NAME}</Name>
                 <AgentStart>
-                    <Inventory />
+                <Inventory />
                     {c.PLAYER_SPAWN}
                 </AgentStart>
                 <AgentHandlers>
