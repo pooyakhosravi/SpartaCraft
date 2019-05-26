@@ -1,6 +1,6 @@
 from src.ActionSpace import BasicActionSpace, BasicDiscreteActionSpace
 from src.ObservationSpace import BasicObservationSpace
-import src.environment as environment
+from src.environment import MalmoEnvironment
 import src.constants as c
 try:
     import src.MalmoPython as MalmoPython
@@ -14,6 +14,7 @@ def startMission(max_retries = 20, debug=False):
     if debug:
         print("Creating Agent Host")
     agent_host = MalmoPython.AgentHost()
+    environment = MalmoEnvironment()
     my_mission = MalmoPython.MissionSpec(environment.getMissionXML(), True)
     my_mission_record = MalmoPython.MissionRecordSpec()
 
@@ -76,7 +77,7 @@ def wait_for_observation(agent_host):
 class BasicEnvironment():
     def __init__(self):
         self.scale_factor = 2
-        self.action_space = BasicDiscreteActionSpace() # BasicActionSpace()
+        self.action_space = BasicActionSpace() # BasicDiscreteActionSpace() 
         self.observation_space = BasicObservationSpace(c.ARENA_WIDTH * self.scale_factor, c.ARENA_BREADTH * self.scale_factor)
 
     def reset(self):
@@ -105,7 +106,7 @@ class BasicEnvironment():
     def get_state(self, observed):
         if observed == None:
             return None
-
+        
         life = observed["Life"]
         xpos = observed["XPos"]
         ypos = observed["YPos"]

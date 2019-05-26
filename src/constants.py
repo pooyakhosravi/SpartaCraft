@@ -7,7 +7,7 @@ import os
 
 MOB_TYPE = "Pig"
 
-MS_PER_TICK = 2
+MS_PER_TICK = 30
 AGENT_TICK_RATE = int(2.5 * MS_PER_TICK)
 
 # COMMANDTYPE = "<HumanLevelCommands/>"
