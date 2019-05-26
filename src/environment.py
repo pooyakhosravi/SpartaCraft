@@ -106,7 +106,7 @@ def getMissionXML():
                     <ObservationFromNearbyEntities>
                         <Range name="entities" xrange="{c.ARENA_WIDTH + 2}" yrange="3" zrange="{c.ARENA_BREADTH + 2}" />
                     </ObservationFromNearbyEntities>
-                    <HumanLevelCommands/>
+                    {c.COMMANDTYPE}
                     <ChatCommands/>
 
                     <MissionQuitCommands quitDescription="killed_all"/>

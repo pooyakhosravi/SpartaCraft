@@ -1,4 +1,4 @@
-from src.ActionSpace import BasicActionSpace
+from src.ActionSpace import BasicActionSpace, BasicDiscreteActionSpace
 from src.ObservationSpace import BasicObservationSpace
 import src.environment as environment
 import src.constants as c
@@ -51,7 +51,8 @@ def startMission(max_retries = 20, debug=False):
     agent_host.sendCommand(f"chat Here we go again!")
     agent_host.sendCommand("hotbar.1 1")
     agent_host.sendCommand("hotbar.1 0")
-    agent_host.sendCommand("moveMouse 0 -150")
+    agent_host.sendCommand("moveMouse 0 -250")
+    # agent_host.sendCommand("attack 1")
     return agent_host
 
 
@@ -75,7 +76,7 @@ def wait_for_observation(agent_host):
 class BasicEnvironment():
     def __init__(self):
         self.scale_factor = 2
-        self.action_space = BasicActionSpace()
+        self.action_space = BasicDiscreteActionSpace() # BasicActionSpace()
         self.observation_space = BasicObservationSpace(c.ARENA_WIDTH * self.scale_factor, c.ARENA_BREADTH * self.scale_factor)
 
     def reset(self):
@@ -143,7 +144,7 @@ class BasicEnvironment():
             if entity["name"] in c.ENTITIES_SPAWN:
                 entity_count += 1
 
-        if entity_count == 0 or not self.world_state.is_mission_running or not ob["IsAlive"] or ob['Life'] == 0:
+        if entity_count == 0 or not self.world_state.is_mission_running or not ob["IsAlive"]:
             self.agent_host.sendCommand("quit")
             return True
         return False
