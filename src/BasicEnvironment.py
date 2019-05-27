@@ -114,17 +114,7 @@ class BasicEnvironment():
         pitch = observed["Pitch"]
         yaw = observed["Yaw"]
 
-        x_range = c.ARENA_WIDTH + .4
-        z_range = c.ARENA_BREADTH + .4
-        x_min = .3 - c.ARENA_WIDTH // 2
-        z_min = .3 - c.ARENA_BREADTH // 2
-        
-        x_index = int((xpos - x_min) / x_range * c.ARENA_WIDTH * self.scale_factor)
-        z_index = int((zpos - z_min) / z_range * c.ARENA_BREADTH * self.scale_factor)
-        state = x_index * c.ARENA_WIDTH * self.scale_factor + z_index
-        if (state < 0 or state > self.observation_space.n):
-            print(f"State: {state} with indices {x_index} {z_index} is invalid. xpos {xpos}, zpos {zpos}")
-        return state
+        return xpos, ypos
 
 
     def get_reward(self):
