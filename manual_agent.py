@@ -264,7 +264,7 @@ def run(current_life, current_yaw, best_yaw):
         if world_state.number_of_rewards_since_last_state > 0:
             # A reward signal has come in - see what it is:
             total_reward += world_state.rewards[-1].getValue()
-        time.sleep(environment.MS_PER_TICK / 1000)
+        time.sleep(environment.AGENT_TICK_RATE / 1000)
         flash = False
 
     # mission has ended.
@@ -277,7 +277,7 @@ def run(current_life, current_yaw, best_yaw):
     print("We stayed alive for " + str(total_commands) + " commands, and scored " + str(total_reward))
     time.sleep(1) # Give the mod a little time to prepare for the next mission.
 
-    return total_reward
+    return total_commands, total_reward
 
 
 
@@ -289,9 +289,16 @@ if __name__ == '__main__':
     best_yaw = 0
     current_life = 0
 
+    rewards = []
+    steps = []
+
     for i in range(num_repeats):
         print(f"Running episode {i}::")
-        run(current_life, current_yaw, best_yaw)
+        s, r  = run(current_life, current_yaw, best_yaw)
+        steps.append(s)
+        rewards.append(r)
         print()
         print(f"::End episode {i}.")
         # Mission has ended.
+
+    print(rewards)

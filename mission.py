@@ -122,6 +122,7 @@ def run():
 
 
     total_reward = 0
+    num_steps = 0
 
     # Loop until mission ends:
     while world_state.is_mission_running:
@@ -136,6 +137,7 @@ def run():
             if a in moveactions:
                 agent_host.sendCommand(moveactions[a])
             agent_host.sendCommand(a)
+            num_steps += 1
 
         if world_state.number_of_observations_since_last_state > 0:
 
@@ -178,7 +180,7 @@ def run():
         for error in world_state.errors:
             print("Error:",error.text)
 
-    return total_reward
+    return num_steps, total_reward
 
 
 if __name__ == '__main__':
