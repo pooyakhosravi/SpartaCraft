@@ -11,7 +11,7 @@ MS_PER_TICK = 10
 AGENT_TICK_RATE = int(2.5 * MS_PER_TICK)
 
 # COMMANDTYPE = "<HumanLevelCommands/>"
-COMMANDTYPE = "<HumanLevelCommands/><DiscreteMovementCommands/>"
+COMMANDTYPE = "<ContinuousMovementCommands turnSpeedDegs=\"480\"/><HumanLevelCommands/><DiscreteMovementCommands/>"
 
 RECORD_FILENAME = os.getcwd() + '/Recordings/record.tgz'
 
