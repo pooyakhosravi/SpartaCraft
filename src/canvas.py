@@ -2,9 +2,10 @@ import tkinter as tk
 import src.constants as c
 
 class Canvas:
-    def __init__(self, width = c.ARENA_WIDTH, breadth = c.ARENA_BREADTH):
+    def __init__(self, width = c.ARENA_WIDTH, breadth = c.ARENA_BREADTH, mobsize = 4):
         self.breadth = breadth
         self.width = width
+        self.mobsize = mobsize
 
     def init_canvas(self):
         self.root = tk.Tk()
@@ -30,5 +31,5 @@ class Canvas:
         self.canvas.create_rectangle(self.canvasX(-self.width // 2), self.canvasY(-self.breadth // 2), self.canvasX(self.width //2), self.canvasY(self.breadth // 2), fill="#888888")
         for ent in entities:
             fill = c.COLORS[ent["name"]] if ent["name"] in c.COLORS else "#00BFFF"
-            self.canvas.create_oval(self.canvasX(ent["x"])-4, self.canvasY(ent["z"])-4, self.canvasX(ent["x"])+4, self.canvasY(ent["z"])+4, fill=fill)
+            self.canvas.create_oval(self.canvasX(ent["x"])-self.mobsize, self.canvasY(ent["z"])-self.mobsize, self.canvasX(ent["x"])+self.mobsize, self.canvasY(ent["z"])+self.mobsize, fill=fill)
         self.root.update()

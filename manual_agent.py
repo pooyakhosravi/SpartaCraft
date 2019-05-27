@@ -125,7 +125,7 @@ def getState(observed):
 
 
 
-canvas = Canvas(width=ARENA_WIDTH, breadth=ARENA_BREADTH).init_canvas()
+canvas = Canvas(width=ARENA_WIDTH, breadth=ARENA_BREADTH, mobsize=8).init_canvas()
 
 
 # if sys.version_info[0] == 2:
@@ -149,7 +149,7 @@ def run(current_life, current_yaw, best_yaw):
         print(agent_host.getUsage())
         exit(0)
 
-    environment = MalmoEnvironment(breadth = ARENA_BREADTH, width = ARENA_WIDTH, movement_commands='manual')
+    environment = MalmoEnvironment(tickrate= c.MINECRAFT_DEFAULT_MS_PER_TICK, breadth = ARENA_BREADTH, width = ARENA_WIDTH, movement_commands='manual')
     my_mission = MalmoPython.MissionSpec(environment.getMissionXML(), True)
     my_mission_record = MalmoPython.MissionRecordSpec()
 

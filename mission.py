@@ -40,7 +40,7 @@ def getState(observed):
 
 
 
-canvas = Canvas().init_canvas()
+canvas = Canvas(mobsize=8).init_canvas()
 
 
 # if sys.version_info[0] == 2:
@@ -64,9 +64,9 @@ def run():
         print(agent_host.getUsage())
         exit(0)
 
-    environment = MalmoEnvironment()
+    environment = MalmoEnvironment(tickrate= c.MINECRAFT_DEFAULT_MS_PER_TICK)
     my_mission = MalmoPython.MissionSpec(environment.getMissionXML(), True)
-    my_mission_record = MalmoPython.MissionRecordSpec(c.RECORD_FILENAME)
+    my_mission_record = MalmoPython.MissionRecordSpec()
 
 
     print(c.RECORD_FILENAME)
@@ -127,7 +127,7 @@ def run():
     # Loop until mission ends:
     while world_state.is_mission_running:
         # print(".", end="")
-        time.sleep(c.AGENT_TICK_RATE / 1000)
+        time.sleep(environment.AGENT_TICK_RATE / 1000)
         world_state = agent_host.getWorldState()
         
 
@@ -145,15 +145,15 @@ def run():
             ob = json.loads(msg)
 
             if is_start:
-                damage_dealth = ob["DamageDealt"]
-                damage_taken = ob["DamageTaken"]
-                mobs_killed = ob["MobsKilled"]
-                print(getState(ob))
+                dmg_dealth = ob["DamageDealt"]
+                dmg_taken = ob["DamageTaken"]
+                killed = ob["MobsKilled"]
+                # print(getState(ob))
                 is_start = False
 
-            damage_dealth = ob["DamageDealt"] - damage_dealth
-            damage_taken = ob["DamageTaken"] - damage_taken
-            mobs_killed = ob["MobsKilled"] - mobs_killed
+            damage_dealth = ob["DamageDealt"] - dmg_dealth
+            damage_taken = ob["DamageTaken"] - dmg_taken
+            mobs_killed = ob["MobsKilled"] - killed
 
             entity_count = 0
             for entity in ob["entities"]:
@@ -164,7 +164,7 @@ def run():
                 agent_host.sendCommand("quit")
             
 
-            print(f"dmg_dealth: {damage_dealth}, dmg_taken: {damage_taken}, mobs_killed: {mobs_killed}")
+            # print(f"dmg_dealth: {damage_dealth}, dmg_taken: {damage_taken}, mobs_killed: {mobs_killed}")
             if "entities" in ob:
                 entities = ob["entities"]
                 canvas.drawMobs(entities, True)
@@ -176,7 +176,7 @@ def run():
         else:
             total_reward += -1.0
 
-        print(f"  total reward: {total_reward}")
+        # print(f"  total reward: {total_reward}")
         for error in world_state.errors:
             print("Error:",error.text)
 
