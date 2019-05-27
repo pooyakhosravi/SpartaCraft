@@ -10,11 +10,11 @@ except ImportError:
 import time, json, sys, os
 import numpy as np
 
-def startMission(max_retries = 20, debug=False):
+def startMission(ms_per_tick, max_retries = 20, debug=False):
     if debug:
         print("Creating Agent Host")
     agent_host = MalmoPython.AgentHost()
-    environment = MalmoEnvironment()
+    environment = MalmoEnvironment(tickrate=ms_per_tick)
     my_mission = MalmoPython.MissionSpec(environment.getMissionXML(), True)
     my_mission_record = MalmoPython.MissionRecordSpec()
 
@@ -39,7 +39,7 @@ def startMission(max_retries = 20, debug=False):
     world_state = agent_host.getWorldState()
     while not world_state.has_mission_begun:
         print(".", end="")
-        time.sleep(10 * c.MS_PER_TICK / 1000)
+        time.sleep(10 * ms_per_tick / 1000)
         world_state = agent_host.getWorldState()
         for error in world_state.errors:
             print("Error:",error.text)
@@ -57,12 +57,12 @@ def startMission(max_retries = 20, debug=False):
     return agent_host
 
 
-def wait_for_observation(agent_host, max_retries=20):
+def wait_for_observation(agent_host, ms_per_tick, max_retries=20):
     do_while_emulator = True
 
     for retry in range(max_retries):
         # print(world_state)
-        time.sleep(c.AGENT_TICK_RATE / 1000)
+        time.sleep(ms_per_tick * c.AGENT_TICK_RATE_MULTIPLIER / 1000)
         world_state = agent_host.getWorldState() 
         for error in world_state.errors:
             print("Error:",error.text)
@@ -79,16 +79,17 @@ def wait_for_observation(agent_host, max_retries=20):
     return world_state, ob
 
 class BasicEnvironment():
-    def __init__(self, debug=False):
+    def __init__(self, ms_per_tick = c.MINECRAFT_DEFAULT_MS_PER_TICK, debug=False):
         self.scale_factor = 2
         self.action_space = BasicActionSpace() # BasicDiscreteActionSpace() 
-        self.observation_space = BasicObservationSpace(c.ARENA_WIDTH * self.scale_factor, c.ARENA_BREADTH * self.scale_factor)
+        self.observation_space = BasicObservationSpace(len(self.get_state(None)))
         self.debug = debug
+        self.ms_per_tick = ms_per_tick
 
     def reset(self):
-        self.agent_host = startMission()
+        self.agent_host = startMission(self.ms_per_tick, debug=self.debug)
         world_state = self.agent_host.getWorldState()
-        self.world_state, observed = wait_for_observation(self.agent_host)
+        self.world_state, observed = wait_for_observation(self.agent_host, self.ms_per_tick)
         return self.get_state(observed)
 
     def step(self, a):
@@ -100,7 +101,7 @@ class BasicEnvironment():
             self.agent_host.sendCommand(moveactions[action])
         self.agent_host.sendCommand(action)
         
-        self.world_state, observed = wait_for_observation(self.agent_host)
+        self.world_state, observed = wait_for_observation(self.agent_host, self.ms_per_tick)
         state = self.get_state(observed)
         reward = self.get_reward()
         done = self.get_done(observed)
@@ -112,7 +113,7 @@ class BasicEnvironment():
     
     def get_state(self, observed):
         if observed == None:
-            return None
+            return (None, None)
         
         life = observed["Life"]
         xpos = observed["XPos"]
@@ -121,7 +122,7 @@ class BasicEnvironment():
         pitch = observed["Pitch"]
         yaw = observed["Yaw"]
 
-        return xpos, zpos
+        return (xpos, zpos)
 
 
     def get_reward(self):
@@ -130,7 +131,7 @@ class BasicEnvironment():
             reward = self.world_state.rewards[-1].getValue()
             # print(f"Got reward: {reward}")
             return reward
-        return 0.0
+        return -1.0
 
 
     def get_done(self, ob):

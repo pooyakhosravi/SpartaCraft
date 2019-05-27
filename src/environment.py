@@ -4,7 +4,7 @@ import src.constants as c
 
 
 class MalmoEnvironment:
-    def __init__(self, tickrate= c.MS_PER_TICK, breadth = c.ARENA_BREADTH, width = c.ARENA_WIDTH, ents = c.ENTITIES_SPAWN, ents_spawn = c.ENTITIES_SPAWN_WITH_POSITION):
+    def __init__(self, tickrate= c.TRAINING_DEFAULT_MS_PER_TICK, breadth = c.ARENA_BREADTH, width = c.ARENA_WIDTH, ents = c.ENTITIES_SPAWN, ents_spawn = c.ENTITIES_SPAWN_WITH_POSITION):
         self.ARENA_BREADTH = breadth
         self.ARENA_WIDTH = width
         self.ENTITIES_SPAWN = ents

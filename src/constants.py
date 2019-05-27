@@ -7,8 +7,9 @@ import os
 
 MOB_TYPE = "Pig"
 
-MS_PER_TICK = 10
-AGENT_TICK_RATE = int(2.5 * MS_PER_TICK)
+MINECRAFT_DEFAULT_MS_PER_TICK = 30
+TRAINING_DEFAULT_MS_PER_TICK = 2
+AGENT_TICK_RATE_MULTIPLIER = 3
 
 # COMMANDTYPE = "<HumanLevelCommands/>"
 COMMANDTYPE = "<ContinuousMovementCommands turnSpeedDegs=\"480\"/><HumanLevelCommands/><DiscreteMovementCommands/>"

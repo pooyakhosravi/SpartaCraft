@@ -273,11 +273,13 @@ class PolicyAgent():
         a = np.argmax(a_dist == a)
         return a
 
-    def train(self, tqdm=tqdm, num_episodes=5000, max_ep=999):
+    def train(self, checkpoint = None, tqdm=tqdm, num_episodes=5000, max_ep=999):
         total_reward = []
         total_length = []
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
+            if checkpoint:
+                saver.restore(sess, checkpoint)
             gradBuffer = sess.run(tf.trainable_variables())
             for ix,grad in enumerate(gradBuffer):
                 gradBuffer[ix] = grad * 0
@@ -297,6 +299,32 @@ class PolicyAgent():
                         self.update(sess, gradBuffer, i)
                         total_reward.append(running_reward)
                         total_length.append(j)
-                        if i % 100 == 0:
-                            print(np.mean(total_reward[-100:]))
+                        if i % 50 == 0:
+                            print(np.mean(total_reward[-50:]))
+                            saver = tf.train.Saver()
+                            save_path = saver.save(sess, f"./checkpoints/model{i}.ckpt")
+                            print(f"Model saved in path: {save_path} at episode: {i}")
                         break
+
+    def test(self, checkpoint = "./checkpoints/model.ckpt", tqdm=tqdm, num_episodes=1, max_ep=999):
+        saver = tf.train.Saver()
+        total_reward = []
+        total_length = []
+        with tf.Session() as sess:
+            sess.run(tf.global_variables_initializer())
+            saver.restore(sess, checkpoint)
+            for i in tqdm(range(num_episodes)):
+                s = self.env.reset()
+                running_reward = 0
+                for j in range(max_ep):
+                    a = self.choose_action(sess, s)
+                    s1,r,d,_ = self.env.step(a)
+                    s = s1
+                    running_reward += r
+                    if d:
+                        # Update the Network and our running tally
+                        total_reward.append(running_reward)
+                        total_length.append(j)
+                        break
+
+        return total_reward, total_length
