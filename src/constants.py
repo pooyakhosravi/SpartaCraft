@@ -11,8 +11,8 @@ MINECRAFT_DEFAULT_MS_PER_TICK = 30
 TRAINING_DEFAULT_MS_PER_TICK = 2
 AGENT_TICK_RATE_MULTIPLIER = 3
 
-# COMMANDTYPE = "<HumanLevelCommands/>"
-COMMANDTYPE = "<ContinuousMovementCommands turnSpeedDegs=\"480\"/><HumanLevelCommands/><DiscreteMovementCommands/>"
+MANUAL_MOVEMENT_COMMANDS = "<ContinuousMovementCommands turnSpeedDegs=\"480\"/><HumanLevelCommands/><DiscreteMovementCommands/>"
+AUTOMATIC_MOVEMENT_COMMANDS = "<HumanLevelCommands/><DiscreteMovementCommands/>"
 
 RECORD_FILENAME = os.getcwd() + '/Recordings/record.tgz'
 

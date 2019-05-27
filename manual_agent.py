@@ -149,7 +149,7 @@ def run(current_life, current_yaw, best_yaw):
         print(agent_host.getUsage())
         exit(0)
 
-    environment = MalmoEnvironment(breadth = ARENA_BREADTH, width = ARENA_WIDTH)
+    environment = MalmoEnvironment(breadth = ARENA_BREADTH, width = ARENA_WIDTH, movement_commands='manual')
     my_mission = MalmoPython.MissionSpec(environment.getMissionXML(), True)
     my_mission_record = MalmoPython.MissionRecordSpec()
 

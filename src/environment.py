@@ -4,7 +4,7 @@ import src.constants as c
 
 
 class MalmoEnvironment:
-    def __init__(self, tickrate= c.TRAINING_DEFAULT_MS_PER_TICK, breadth = c.ARENA_BREADTH, width = c.ARENA_WIDTH, ents = c.ENTITIES_SPAWN, ents_spawn = c.ENTITIES_SPAWN_WITH_POSITION):
+    def __init__(self, tickrate= c.TRAINING_DEFAULT_MS_PER_TICK, breadth = c.ARENA_BREADTH, width = c.ARENA_WIDTH, ents = c.ENTITIES_SPAWN, ents_spawn = c.ENTITIES_SPAWN_WITH_POSITION, movement_commands="automatic"):
         self.ARENA_BREADTH = breadth
         self.ARENA_WIDTH = width
         self.ENTITIES_SPAWN = ents
@@ -15,6 +15,7 @@ class MalmoEnvironment:
         self.AGENT_TICK_RATE = int(2.5 * self.MS_PER_TICK)
 
         self.TIME_LIMIT = c.TIME_LIMIT
+        self.movement_commands = c.AUTOMATIC_MOVEMENT_COMMANDS if movement_commands == 'automatic' else c.MANUAL_MOVEMENT_COMMANDS
 
         
     def getRandomMultiItemXML(self, num_item, item_type):
@@ -136,7 +137,7 @@ class MalmoEnvironment:
                         <ObservationFromNearbyEntities>
                             <Range name="entities" xrange="{self.ARENA_WIDTH + 2}" yrange="3" zrange="{self.ARENA_BREADTH + 2}" />
                         </ObservationFromNearbyEntities>
-                        {c.COMMANDTYPE}
+                        {self.movement_commands}
                         <ChatCommands/>
 
                         <MissionQuitCommands quitDescription="killed_all"/>

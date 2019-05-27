@@ -87,7 +87,7 @@ class BasicEnvironment():
         self.ms_per_tick = ms_per_tick
 
     def reset(self):
-        self.agent_host = startMission(self.ms_per_tick, debug=self.debug)
+        self.agent_host = startMission(self.ms_per_tick, debug=self.debug, max_retries=100)
         world_state = self.agent_host.getWorldState()
         self.world_state, observed = wait_for_observation(self.agent_host, self.ms_per_tick)
         return self.get_state(observed)
