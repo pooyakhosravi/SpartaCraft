@@ -1,4 +1,4 @@
-from tqdm import tqdm_notebook
+from tqdm import tqdm, tqdm_notebook
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
@@ -205,10 +205,11 @@ def discount_rewards(r, gamma):
     return discounted_r
 
 class PolicyAgent():
-    def __init__(self, lr, env, hidden_layer_size, gamma=.99):
+    def __init__(self, lr, env, hidden_layer_size, gamma=.99, debug=False):
         self.lr = lr
         self.env = env
         self.gamma = gamma
+        self.debug = debug
         self.h_size = hidden_layer_size
         self._create_model()
         self.memory = Memory()
@@ -266,11 +267,13 @@ class PolicyAgent():
     def choose_action(self, sess, s):
         #Probabilistically pick an action given our network outputs.
         a_dist = sess.run(self.output,feed_dict={self.state_in:[s]})
+        if self.debug:
+            print(f"a_dist: {a_dist}")
         a = np.random.choice(a_dist[0],p=a_dist[0])
         a = np.argmax(a_dist == a)
         return a
 
-    def train(self, num_episodes=5000, max_ep=999):
+    def train(self, tqdm=tqdm, num_episodes=5000, max_ep=999):
         total_reward = []
         total_length = []
         with tf.Session() as sess:
@@ -279,7 +282,7 @@ class PolicyAgent():
             for ix,grad in enumerate(gradBuffer):
                 gradBuffer[ix] = grad * 0
                 
-            for i in tqdm_notebook(range(num_episodes)):
+            for i in tqdm(range(num_episodes)):
                 s = self.env.reset()
                 self.memory.clear()
                 running_reward = 0
