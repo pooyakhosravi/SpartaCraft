@@ -35,8 +35,8 @@ agent_turn_weight = 0 # Negative values to penalise turning, positive to encoura
 NUM_GOALS = 20
 GOAL_TYPE = "Zombie"
 GOAL_REWARD = 100
-ARENA_WIDTH = 30
-ARENA_BREADTH = 30
+ARENA_WIDTH = 6
+ARENA_BREADTH = 6
 MOB_TYPE = "Cow"
 
 
@@ -201,7 +201,9 @@ def run(current_life, current_yaw, best_yaw):
     agent_host.sendCommand("hotbar.1 1")
     agent_host.sendCommand("hotbar.1 0")
     agent_host.sendCommand("moveMouse 0 -150")
-
+    agent_host.sendCommand("pitch 0.1")
+    time.sleep(4*environment.AGENT_TICK_RATE / 1000)
+    agent_host.sendCommand("pitch 0")
     is_start = True
 
 
@@ -219,7 +221,7 @@ def run(current_life, current_yaw, best_yaw):
     while world_state.is_mission_running:
         world_state = agent_host.getWorldState()
         if random.random() < .75:
-            agent_host.sendCommand(f"move {agent_stepsize}")
+            agent_host.sendCommand(f"move {-agent_stepsize}")
         else:
             if random.random() < .5:
                 agent_host.sendCommand("strafe .85")
