@@ -57,9 +57,10 @@ def startMission(max_retries = 20, debug=False):
     return agent_host
 
 
-def wait_for_observation(agent_host):
+def wait_for_observation(agent_host, max_retries=20):
     do_while_emulator = True
-    while True:
+
+    for retry in range(max_retries):
         # print(world_state)
         time.sleep(c.AGENT_TICK_RATE / 1000)
         world_state = agent_host.getWorldState() 
@@ -69,16 +70,20 @@ def wait_for_observation(agent_host):
             break
         if not world_state.is_mission_running:
             return world_state, None
+        if retry == max_retries - 1:
+                print(f"Error: Did not receive observation after {max_retries} times")
+                sys.exit(-1)
 
     msg = world_state.observations[-1].text
     ob = json.loads(msg)
     return world_state, ob
 
 class BasicEnvironment():
-    def __init__(self):
+    def __init__(self, debug=False):
         self.scale_factor = 2
         self.action_space = BasicActionSpace() # BasicDiscreteActionSpace() 
         self.observation_space = BasicObservationSpace(c.ARENA_WIDTH * self.scale_factor, c.ARENA_BREADTH * self.scale_factor)
+        self.debug = debug
 
     def reset(self):
         self.agent_host = startMission()
@@ -88,7 +93,8 @@ class BasicEnvironment():
 
     def step(self, a):
         action = self.action_space.actions[a]
-        # print(f"Taking action: {a}, {action}")
+        if self.debug:
+            print(f"Taking action: {a}, {action}")
         moveactions = {"forward 1": "back 0", "left 1": "right 0", "right 1": "left 0", "back 1": "forward 0"}
         if action in moveactions.keys():
             self.agent_host.sendCommand(moveactions[action])
@@ -99,7 +105,8 @@ class BasicEnvironment():
         reward = self.get_reward()
         done = self.get_done(observed)
 
-        # print(f"state: {state}, reward: {reward}, done: {done}")
+        if self.debug:
+            print(f"state: {state}, reward: {reward}, done: {done}")
         return state, reward, done, None
     
     
@@ -114,17 +121,7 @@ class BasicEnvironment():
         pitch = observed["Pitch"]
         yaw = observed["Yaw"]
 
-        x_range = c.ARENA_WIDTH + .4
-        z_range = c.ARENA_BREADTH + .4
-        x_min = .3 - c.ARENA_WIDTH // 2
-        z_min = .3 - c.ARENA_BREADTH // 2
-        
-        x_index = int((xpos - x_min) / x_range * c.ARENA_WIDTH * self.scale_factor)
-        z_index = int((zpos - z_min) / z_range * c.ARENA_BREADTH * self.scale_factor)
-        state = x_index * c.ARENA_WIDTH * self.scale_factor + z_index
-        if (state < 0 or state > self.observation_space.n):
-            print(f"State: {state} with indices {x_index} {z_index} is invalid. xpos {xpos}, zpos {zpos}")
-        return state
+        return xpos, zpos
 
 
     def get_reward(self):
@@ -133,7 +130,7 @@ class BasicEnvironment():
             reward = self.world_state.rewards[-1].getValue()
             # print(f"Got reward: {reward}")
             return reward
-        return -1.0
+        return 0.0
 
 
     def get_done(self, ob):

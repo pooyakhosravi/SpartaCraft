@@ -7,7 +7,7 @@ import os
 
 MOB_TYPE = "Pig"
 
-MS_PER_TICK = 30
+MS_PER_TICK = 10
 AGENT_TICK_RATE = int(2.5 * MS_PER_TICK)
 
 # COMMANDTYPE = "<HumanLevelCommands/>"
@@ -18,7 +18,7 @@ RECORD_FILENAME = os.getcwd() + '/Recordings/record.tgz'
 PLAYER_NAME = "Hunter"
 
 
-ENTITIES_SPAWN = {"Cow": 2, "Zombie": 0} # {"Pig": 20, "Cow": 20, "Zombie":5}
+ENTITIES_SPAWN = {"Cow": 0, "Zombie": 0} # {"Pig": 20, "Cow": 20, "Zombie":5}
 ITEMS_SPAWN = {} #{"carrot": 30, "apple": 10}
 
 
@@ -64,4 +64,4 @@ def getCornerXYZ(top,left,expand=0,y=206):
     return (x, y, z)
 
 
-ENTITIES_SPAWN_WITH_POSITION = {"Zombie" :[getCornerXYZ(False, False, -.5), getCornerXYZ(False, True, -.5)]}
+ENTITIES_SPAWN_WITH_POSITION = {"Zombie" :[getCornerXYZ(False, False, -.5)]}#, getCornerXYZ(False, True, -.5)]}
