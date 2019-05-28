@@ -122,7 +122,7 @@ class BasicEnvironment():
             pitch = observed["Pitch"]
             yaw = observed["Yaw"]
             for entity in observed["entities"]:
-                if entity["name"] == "Hunter":
+                if entity["name"] == c.PLAYER_NAME:
                     motionX = entity["motionX"]
                     motionY = entity["motionY"]
                     break

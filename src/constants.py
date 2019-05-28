@@ -16,7 +16,7 @@ AUTOMATIC_MOVEMENT_COMMANDS = "<HumanLevelCommands/><DiscreteMovementCommands/>"
 
 RECORD_FILENAME = os.getcwd() + '/Recordings/record.tgz'
 
-PLAYER_NAME = "Hunter"
+PLAYER_NAME = "Spartos"
 
 
 ENTITIES_SPAWN = {"Cow": 0, "Zombie": 0} # {"Pig": 20, "Cow": 20, "Zombie":5}
