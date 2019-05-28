@@ -112,6 +112,8 @@ class BasicEnvironment():
     def get_state(self, observed):
         xpos = None
         zpos = None
+        motionX = None
+        motionY = None
         if observed:
             life = observed["Life"]
             xpos = observed["XPos"]
@@ -119,7 +121,12 @@ class BasicEnvironment():
             zpos = observed["ZPos"]
             pitch = observed["Pitch"]
             yaw = observed["Yaw"]
-        return (xpos, zpos)
+            for entity in observed["entities"]:
+                if entity["name"] == "Hunter":
+                    motionX = entity["motionX"]
+                    motionY = entity["motionY"]
+                    break
+        return (xpos, zpos, motionX, motionY)
 
 
     def get_reward(self):
