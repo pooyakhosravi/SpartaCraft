@@ -130,10 +130,10 @@ class BasicEnvironment():
 
 
     def get_reward(self):
+        if not self.world_state:
+            return 0.0
         if self.world_state.number_of_rewards_since_last_state > 0:
-            #print(f"dmg_dealt: {dmg_dealt}, dmg_taken: {dmg_taken}, mobs_killed: {mobs_killed}")
             reward = self.world_state.rewards[-1].getValue()
-            # print(f"Got reward: {reward}")
             return reward
         return -1.0
 

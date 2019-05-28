@@ -284,12 +284,12 @@ class PolicyAgent():
             if checkpoint:
                 saver.restore(sess, f"./checkpoints/model{checkpoint}.ckpt")
             else:
-                checkpoint = 0
+                checkpoint = 1
             gradBuffer = sess.run(tf.trainable_variables())
             for ix,grad in enumerate(gradBuffer):
                 gradBuffer[ix] = grad * 0
                 
-            for i in tqdm(range(checkpoint, num_episodes)):
+            for i in tqdm(range(checkpoint, num_episodes + 1)):
                 s = self.env.reset()
                 self.memory.clear()
                 running_reward = 0
@@ -310,7 +310,7 @@ class PolicyAgent():
                             print(f"Model saved in path: {save_path} at episode: {i}")
                         break
 
-    def test(self, checkpoint = "./checkpoints/model.ckpt", tqdm=tqdm, num_episodes=1, max_ep=999):
+    def test(self, checkpoint, tqdm=tqdm, num_episodes=1, max_ep=999):
         saver = tf.train.Saver()
         config = tf.ConfigProto()
         config.gpu_options.allow_growth=True
@@ -318,7 +318,7 @@ class PolicyAgent():
         total_length = []
         with tf.Session(config=config) as sess:
             sess.run(tf.global_variables_initializer())
-            saver.restore(sess, checkpoint)
+            saver.restore(sess, f"./checkpoints/model{checkpoint}.ckpt")
             for i in tqdm(range(num_episodes)):
                 s = self.env.reset()
                 running_reward = 0
