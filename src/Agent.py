@@ -222,44 +222,53 @@ class PolicyAgent():
         state_in_shape = [None,self.env.observation_space.shape[0]]
         print(f"state_in shape: {state_in_shape}")
         
-        #These lines established the feed-forward part of the network. The agent takes a state and produces an action.
-        self.state_in= tf.placeholder(shape=[None,s_size],dtype=tf.float32)
-        hidden = slim.fully_connected(self.state_in,h_size,biases_initializer=None,activation_fn=tf.nn.relu)
-        self.output = slim.fully_connected(hidden,a_size,activation_fn=tf.nn.softmax,biases_initializer=None)
+        # Feed Foward
+        self.state_in= tf.keras.Input(shape=[s_size],dtype=tf.float32)
+        model = tf.keras.models.Sequential([
+            tf.keras.layers.Dense(h_size, activation=tf.nn.relu, name='dense1'),
+            tf.keras.layers.Dense(a_size, activation=tf.nn.softmax, name='dense2')
+        ])
+        self.output = model(self.state_in)
+        print(f"Output Shape: {self.output.shape}")
         self.chosen_action = tf.argmax(self.output,1)
 
-        #The next six lines establish the training proceedure. We feed the reward and chosen action into the network
-        #to compute the loss, and use it to update the network.
-        self.reward_holder = tf.placeholder(shape=[None],dtype=tf.float32)
-        self.action_holder = tf.placeholder(shape=[None],dtype=tf.int32)
+        # Loss (Computed Per episode)
+        self.discounted_rewards_holder = tf.placeholder(shape=[None], dtype=tf.float32)
+        self.chosen_action_holder =      tf.placeholder(shape=[None], dtype=tf.int32)
         
-        self.indexes = tf.range(0, tf.shape(self.output)[0]) * tf.shape(self.output)[1] + self.action_holder
+        batch_size = tf.shape(self.output)[0]
+        num_outputs = tf.shape(self.output)[1]
+        self.indexes = tf.range(0, batch_size) * num_outputs + self.chosen_action_holder
         self.responsible_outputs = tf.gather(tf.reshape(self.output, [-1]), self.indexes)
 
-        self.loss = -tf.reduce_mean(tf.log(self.responsible_outputs)*self.reward_holder)
+        self.loss = -tf.reduce_mean(tf.log(self.responsible_outputs) * self.discounted_rewards_holder)
         
-        tvars = tf.trainable_variables()
+        # Update (Computed Per n episodes)
+        # Placeholders for trainable variable gradients every n episodes
+        trainable_variables = tf.trainable_variables()
         self.gradient_holders = []
-        for idx,var in enumerate(tvars):
+        for idx,var in enumerate(trainable_variables):
             placeholder = tf.placeholder(tf.float32,name=str(idx)+'_holder')
             self.gradient_holders.append(placeholder)
         
-        self.gradients = tf.gradients(self.loss,tvars)
+        # Compute gradients based on single episode loss
+        self.gradients = tf.gradients(self.loss,trainable_variables)
         
+        # Update gradients assuming gradient_holders are filled with gradBuffer
         optimizer = tf.train.AdamOptimizer(learning_rate=self.lr)
-        self.update_batch = optimizer.apply_gradients(zip(self.gradient_holders,tvars))
+        self.update_batch = optimizer.apply_gradients(zip(self.gradient_holders,trainable_variables))
     
     def update(self, sess, gradBuffer, i, update_frequency=5):
         ep_history = np.array(self.memory.history)
         ep_history[:,2] = discount_rewards(ep_history[:,2], self.gamma)
-        feed_dict={self.reward_holder:ep_history[:,2],
-                self.action_holder:ep_history[:,1],self.state_in:np.vstack(ep_history[:,0])}
+        feed_dict={self.discounted_rewards_holder:ep_history[:,2],
+                self.chosen_action_holder:ep_history[:,1],self.state_in:np.vstack(ep_history[:,0])}
         grads = sess.run(self.gradients, feed_dict=feed_dict)
         for idx,grad in enumerate(grads):
             gradBuffer[idx] += grad
 
         if i % update_frequency == 0 and i != 0:
-            feed_dict= dictionary = dict(zip(self.gradient_holders, gradBuffer))
+            feed_dict = dict(zip(self.gradient_holders, gradBuffer))
             _ = sess.run(self.update_batch, feed_dict=feed_dict)
             for ix,grad in enumerate(gradBuffer):
                 gradBuffer[ix] = grad * 0
@@ -309,6 +318,7 @@ class PolicyAgent():
                             save_path = saver.save(sess, f"./checkpoints/model{i}.ckpt")
                             print(f"Model saved in path: {save_path} at episode: {i}")
                         break
+        return total_length, total_reward
 
     def test(self, checkpoint, tqdm=tqdm, num_episodes=1, max_ep=999):
         saver = tf.train.Saver()
