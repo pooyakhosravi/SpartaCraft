@@ -58,8 +58,6 @@ def startMission(ms_per_tick, max_retries = 20, debug=False):
 
 
 def wait_for_observation(agent_host, ms_per_tick, max_retries=20):
-    do_while_emulator = True
-
     for retry in range(max_retries):
         # print(world_state)
         time.sleep(ms_per_tick * c.AGENT_TICK_RATE_MULTIPLIER / 1000)
@@ -71,8 +69,8 @@ def wait_for_observation(agent_host, ms_per_tick, max_retries=20):
         if not world_state.is_mission_running:
             return world_state, None
         if retry == max_retries - 1:
-                print(f"Error: Did not receive observation after {max_retries} times")
-                sys.exit(-1)
+            print(f"Error: Did not receive observation after {max_retries} times")
+            return None, None
 
     msg = world_state.observations[-1].text
     ob = json.loads(msg)
@@ -89,7 +87,7 @@ class BasicEnvironment():
     def reset(self):
         self.agent_host = startMission(self.ms_per_tick, debug=self.debug, max_retries=100)
         world_state = self.agent_host.getWorldState()
-        self.world_state, observed = wait_for_observation(self.agent_host, self.ms_per_tick)
+        self.world_state, observed = wait_for_observation(self.agent_host, self.ms_per_tick, max_retries=100)
         return self.get_state(observed)
 
     def step(self, a):
@@ -112,27 +110,32 @@ class BasicEnvironment():
     
     
     def get_state(self, observed):
-        if observed == None:
-            return (None, None)
-        
-        life = observed["Life"]
-        xpos = observed["XPos"]
-        ypos = observed["YPos"]
-        zpos = observed["ZPos"]
-        pitch = observed["Pitch"]
-        yaw = observed["Yaw"]
-
-        return (xpos, zpos)
+        xpos = None
+        zpos = None
+        motionX = None
+        motionY = None
+        if observed:
+            life = observed["Life"]
+            xpos = observed["XPos"]
+            ypos = observed["YPos"]
+            zpos = observed["ZPos"]
+            pitch = observed["Pitch"]
+            yaw = observed["Yaw"]
+            for entity in observed["entities"]:
+                if entity["name"] == c.PLAYER_NAME:
+                    motionX = entity["motionX"]
+                    motionY = entity["motionY"]
+                    break
+        return (xpos, zpos, motionX, motionY)
 
 
     def get_reward(self):
+        if not self.world_state:
+            return 0.0
         if self.world_state.number_of_rewards_since_last_state > 0:
-            #print(f"dmg_dealt: {dmg_dealt}, dmg_taken: {dmg_taken}, mobs_killed: {mobs_killed}")
             reward = self.world_state.rewards[-1].getValue()
-            # print(f"Got reward: {reward}")
             return reward
         return -1.0
-
 
     def get_done(self, ob):
         if ob == None:
@@ -148,4 +151,6 @@ class BasicEnvironment():
             return True
         return False
 
-    
+    def get_additional_info(self, ob):
+        info = {}
+        info["Failure"] = ob is None

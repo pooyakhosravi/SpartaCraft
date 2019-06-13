@@ -9,5 +9,5 @@ if __name__ == "__main__":
     tf.reset_default_graph() #Clear the Tensorflow graph.
     agent = PolicyAgent(1e-2, env, 8, debug=False)
 
-    agent.train(tqdm=tqdm, num_episodes=1000)
+    agent.train(tqdm=tqdm, num_episodes=1000, checkpoint=None)
  
