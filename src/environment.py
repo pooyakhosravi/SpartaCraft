@@ -22,8 +22,12 @@ class MalmoEnvironment:
         ''' Build an XML string that contains some randomly positioned goal items'''
         xml=""
         for item in range(num_item):
-            x = str(random.randint(-self.ARENA_WIDTH // 2, self.ARENA_WIDTH // 2))
-            z = str(random.randint(-self.ARENA_BREADTH // 2,self.ARENA_BREADTH // 2))
+            x = random.randint(-self.ARENA_WIDTH // 2, self.ARENA_WIDTH // 2)
+            z = random.randint(-self.ARENA_BREADTH // 2,self.ARENA_BREADTH // 2)
+            while (x)**2 + (z)**2 > (self.ARENA_BREADTH*self.ARENA_WIDTH/4):
+                x = random.randint(-self.ARENA_WIDTH // 2, self.ARENA_WIDTH // 2)
+                z = random.randint(-self.ARENA_BREADTH // 2,self.ARENA_BREADTH // 2)
+            
             xml += '''<DrawItem x="''' + x + '''" y="210" z="''' + z + '''" type="''' + item_type + '''"/>'''
         return xml
 
@@ -32,8 +36,12 @@ class MalmoEnvironment:
         ''' Build an XML for random entities, like zombies and animals'''
         xml = ""
         for i in range(num_entity):
-            x = str(random.randint(-self.ARENA_WIDTH // 2, self.ARENA_WIDTH // 2))
-            z = str(random.randint(-self.ARENA_BREADTH // 2,self.ARENA_BREADTH // 2))
+            x = random.randint(-self.ARENA_WIDTH // 2, self.ARENA_WIDTH // 2)
+            z = random.randint(-self.ARENA_BREADTH // 2,self.ARENA_BREADTH // 2)
+            while (x)**2 + (z)**2 > (self.ARENA_BREADTH*self.ARENA_WIDTH/4 - 5) or (x - c.PLAYER_X)**2 + (z-c.PLAYER_Z)**2 < 200:
+                x = random.randint(-self.ARENA_WIDTH // 2, self.ARENA_WIDTH // 2)
+                z = random.randint(-self.ARENA_BREADTH // 2,self.ARENA_BREADTH // 2)
+            
             y = c.PLAYER_Y
             xml += f'<DrawEntity x="{x}" y="{y}" z="{z}" type="{mob_type}" yaw="0"/>'
         return xml
@@ -54,7 +62,7 @@ class MalmoEnvironment:
 
     def getEntityRandomSpawnXML(self):
         xml = ""
-        random.seed(0)
+        # random.seed(2)
         for mob_type in self.ENTITIES_SPAWN:
             xml += self.getRandomMultiEntityXML(self.ENTITIES_SPAWN[mob_type], mob_type)
 
@@ -87,6 +95,27 @@ class MalmoEnvironment:
         z = -(expand+self.ARENA_BREADTH//2) if top else expand+self.ARENA_BREADTH//2
         return (x, y, z)
 
+    def getCubiodMap(self):
+        return f'''
+        <DrawCuboid {self.getCorner("1",True,True,y=int(c.PLAYER_Y - 1), expand=1)} {self.getCorner("2",False,False,y=226, expand=1)} type="barrier"/>
+        <DrawCuboid {self.getCorner("1",True,True,y=int(c.PLAYER_Y))} {self.getCorner("2",False,False,y=226)} type="air"/>'''
+
+
+    def getCylindricalMap(self):
+        result = ''
+        expand = 3
+        for x in range(-(expand+self.ARENA_WIDTH//2), expand+self.ARENA_WIDTH//2):
+            for z in range(-(expand+self.ARENA_BREADTH//2), expand+self.ARENA_BREADTH//2):
+                d = (x)**2 + (z)**2
+                if d <= (self.ARENA_BREADTH*self.ARENA_WIDTH/4 + 2*expand):
+                    result += f'''<DrawLine x1="{x}" y1="{int(c.PLAYER_Y)}" z1="{z}" x2="{x}" y2="{226}" z2="{z}" type="air"/>'''    
+                elif int(d) < (self.ARENA_BREADTH*self.ARENA_WIDTH/4 + 10*expand):
+                    result += f'''<DrawLine x1="{x}" y1="{int(c.PLAYER_Y)}" z1="{z}" x2="{x}" y2="{226}" z2="{z}" type="barrier"/>'''
+                    
+        return result
+        # <DrawCuboid {self.getCorner("1",True,True,y=int(c.PLAYER_Y - 1), expand=1)} {self.getCorner("2",False,False,y=226, expand=1)} type="barrier"/>
+        # <DrawCuboid {self.getCorner("1",True,True,y=int(c.PLAYER_Y))} {self.getCorner("2",False,False,y=226)} type="air"/>
+
 
     def getMissionXML(self):
         return f'''<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
@@ -113,8 +142,7 @@ class MalmoEnvironment:
                         
                         <DrawingDecorator>
                             <DrawCuboid {self.getCorner("1",True,True,y=int(c.PLAYER_Y - 2), expand=2)} {self.getCorner("2",False,False,y=226, expand=2)} type="sea_lantern"/>
-                            <DrawCuboid {self.getCorner("1",True,True,y=int(c.PLAYER_Y - 1), expand=1)} {self.getCorner("2",False,False,y=226, expand=1)} type="barrier"/>
-                            <DrawCuboid {self.getCorner("1",True,True,y=int(c.PLAYER_Y))} {self.getCorner("2",False,False,y=226)} type="air"/>
+                            {self.getCylindricalMap()}
                             {self.getItemSpawnXML()}
                             {self.getEntitySpawnWithPositionXML()}
                             {self.getEntityRandomSpawnXML()}
@@ -125,7 +153,7 @@ class MalmoEnvironment:
                     </ServerHandlers>
                     </ServerSection>
                     
-                    <AgentSection mode="Survival">
+                    <AgentSection mode="Spectator">
                     <Name>{c.PLAYER_NAME}</Name>
                     <AgentStart>
                     <Inventory />

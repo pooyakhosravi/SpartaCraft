@@ -25,7 +25,7 @@ except ImportError:
 
 
 # Agent parameters:
-agent_stepsize = -.75
+agent_stepsize = -.85
 agent_search_resolution = 60 # Smaller values make computation faster, which seems to offset any benefit from the higher resolution.
 agent_goal_weight = 1500
 agent_edge_weight = 0
@@ -82,7 +82,7 @@ def getBestAngle(entities, current_yaw, current_health):
                 dist -= 1   # assume mobs are moving towards us
                 if dist <= 0:
                     dist = 0.1
-                weight = agent_goal_weight * current_health / 20.0
+                weight = agent_goal_weight # * current_health / 20.0
             score += old_div(weight, float(dist**2 + 1e-3))
 
         # Calculate cost of proximity to edges:
@@ -221,16 +221,16 @@ def run(current_life, current_yaw, best_yaw):
     flash = False
     while world_state.is_mission_running:
         world_state = agent_host.getWorldState()
-        if random.random() < .75:
-            if random.random() < .65:
+        if random.random() < .85:
+            if random.random() < .75:
                 agent_host.sendCommand(f"move {agent_stepsize}")
             else:
-                agent_host.sendCommand(f"move {-agent_stepsize/2}")
-        else:
-            if random.random() < .5:
-                agent_host.sendCommand("strafe .85")
+                agent_host.sendCommand(f"move {1}")
+        if random.random() < .70:
+            if random.random() < .55:
+                agent_host.sendCommand("strafe 1")
             else:
-                agent_host.sendCommand("strafe -.85")
+                agent_host.sendCommand("strafe -1")
         agent_host.sendCommand("attack 1")
         if world_state.number_of_observations_since_last_state > 0:
             msg = world_state.observations[-1].text
