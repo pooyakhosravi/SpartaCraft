@@ -216,6 +216,8 @@ def run(current_life, current_yaw, best_yaw):
     # main loop:
     total_reward = 0
     total_commands = 0
+    total_killed = 0
+    goal_count = -1
     flash = False
     while world_state.is_mission_running:
         world_state = agent_host.getWorldState()
@@ -244,6 +246,18 @@ def run(current_life, current_yaw, best_yaw):
                 current_life = life
             if "entities" in ob:
                 entities = ob["entities"]
+
+                if goal_count == -1:
+                    goal_count = len([ent for ent in entities if ent["name"] == GOAL_TYPE])
+
+                rem_goals = 0
+                for entity in ob["entities"]:
+                    if entity["name"] == GOAL_TYPE:
+                        rem_goals += 1
+
+                if rem_goals < goal_count:
+                    total_reward += (goal_count - rem_goals)*c.ENTITY_KILLED_REWARD[GOAL_TYPE]
+                    goal_count = rem_goals
 
                 # canvas.drawMobs(entities, True)
                 best_yaw = getBestAngle(entities, current_yaw, current_life)

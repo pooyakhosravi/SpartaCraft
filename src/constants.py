@@ -23,7 +23,8 @@ ENTITIES_SPAWN = {"Cow": 0, "Zombie": 12} # {"Pig": 20, "Cow": 20, "Zombie":5}
 ITEMS_SPAWN = {} #{"carrot": 30, "apple": 10}
 
 
-PLAYER_DAMAGE_TAKEN_REWARD = -1
+PLAYER_DAMAGE_TAKEN_REWARD = -5
+ENTITY_KILLED_REWARD = {"Zombie": 400}
 
 DAMAGE_ENTITY_REWARDS = {"Cow": 1, "Zombie": 1}
 

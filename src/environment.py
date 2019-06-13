@@ -146,10 +146,6 @@ class MalmoEnvironment:
                             <Reward description="killed_all" reward="0.0"/>
                             <Reward description="times_up" reward="-100.0"/>
                         </RewardForMissionEnd>
-
-                        <RewardForDamagingEntity>
-                            {self.getRewards()}
-                        </RewardForDamagingEntity>
                     </AgentHandlers>
                     </AgentSection>
                 </Mission>'''
