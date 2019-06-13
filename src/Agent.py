@@ -171,6 +171,14 @@ class QLearning():
 def MountainCarScaling(env, s):
     return 10.0 * s / [env.max_position - env.min_position, env.max_speed + env.max_speed]
 
+def discount_rewards(r, gamma):
+    """ take 1D float array of rewards and compute discounted reward """
+    discounted_r = np.zeros_like(r)
+    running_add = 0
+    for t in reversed(range(0, r.size)):
+        running_add = running_add * gamma + r[t]
+        discounted_r[t] = running_add
+    return discounted_r
 
 class Random():
     def __init__(self, env):
@@ -194,39 +202,67 @@ class Random():
             reward_list.append(reward)
         return reward_list
 
-
-def discount_rewards(r, gamma):
-    """ take 1D float array of rewards and compute discounted reward """
-    discounted_r = np.zeros_like(r)
-    running_add = 0
-    for t in reversed(range(0, r.size)):
-        running_add = running_add * gamma + r[t]
-        discounted_r[t] = running_add
-    return discounted_r
-
 class PolicyAgent():
-    def __init__(self, lr, env, hidden_layer_size, gamma=.99, debug=False):
+    def __init__(self, env, lr, gamma, debug=False):
         self.lr = lr
         self.env = env
+        self.s_size = self.env.observation_space.shape[0]
+        self.a_size = self.env.action_space.n
         self.gamma = gamma
         self.debug = debug
+        self.memory = Memory()
+        self.state_in = tf.keras.Input(shape=[self.s_size],dtype=tf.float32)
+        self.output = None # Child must implement
+
+    def choose_action(self, sess, s):
+        #Probabilistically pick an action given our network outputs.
+        a_dist = sess.run(self.output,feed_dict={self.state_in:[s]})
+        if self.debug:
+            print(f"a_dist: {a_dist}")
+        a = np.random.choice(a_dist[0],p=a_dist[0])
+        a = np.argmax(a_dist == a)
+        return a
+
+    def test(self, checkpoint, tqdm=tqdm, num_episodes=1, max_ep=999):
+        saver = tf.train.Saver()
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth=True
+        total_reward = []
+        total_length = []
+        with tf.Session(config=config) as sess:
+            sess.run(tf.global_variables_initializer())
+            saver.restore(sess, f"./checkpoints/model{checkpoint}.ckpt")
+            for i in tqdm(range(num_episodes)):
+                s = self.env.reset()
+                running_reward = 0
+                for j in range(max_ep):
+                    a = self.choose_action(sess, s)
+                    s1,r,d,_ = self.env.step(a)
+                    s = s1
+                    running_reward += r
+                    if d:
+                        # Update the Network and our running tally
+                        total_reward.append(running_reward)
+                        total_length.append(j)
+                        break
+
+        return total_reward, total_length
+
+class VPGAgent(PolicyAgent):
+    def __init__(self, lr, env, hidden_layer_size, gamma=.99, debug=False):
+        PolicyAgent.__init__(self, env, lr, gamma, debug)
         self.h_size = hidden_layer_size
         self._create_model()
-        self.memory = Memory()
         
     def _create_model(self):
-        s_size = self.env.observation_space.shape[0]
-        h_size = self.h_size
-        a_size = self.env.action_space.n
-        print(f"s_size: {s_size}, h_size: {self.h_size}, a_size: {a_size}")
+        print(f"s_size: {self.s_size}, h_size: {self.h_size}, a_size: {self.a_size}")
         state_in_shape = [None,self.env.observation_space.shape[0]]
         print(f"state_in shape: {state_in_shape}")
         
         # Feed Foward
-        self.state_in= tf.keras.Input(shape=[s_size],dtype=tf.float32)
         model = tf.keras.models.Sequential([
-            tf.keras.layers.Dense(h_size, activation=tf.nn.relu, name='dense1'),
-            tf.keras.layers.Dense(a_size, activation=tf.nn.softmax, name='dense2')
+            tf.keras.layers.Dense(self.h_size, activation=tf.nn.relu, name='dense1'),
+            tf.keras.layers.Dense(self.a_size, activation=tf.nn.softmax, name='dense2')
         ])
         self.output = model(self.state_in)
         print(f"Output Shape: {self.output.shape}")
@@ -241,7 +277,9 @@ class PolicyAgent():
         self.indexes = tf.range(0, batch_size) * num_outputs + self.chosen_action_holder
         self.responsible_outputs = tf.gather(tf.reshape(self.output, [-1]), self.indexes)
 
-        self.loss = -tf.reduce_mean(tf.log(self.responsible_outputs) * self.discounted_rewards_holder)
+        self.advantage = self.discounted_rewards_holder
+
+        self.loss = -tf.reduce_mean(tf.log(self.responsible_outputs) * self.advantage)
         
         # Update (Computed Per n episodes)
         # Placeholders for trainable variable gradients every n episodes
@@ -272,15 +310,6 @@ class PolicyAgent():
             _ = sess.run(self.update_batch, feed_dict=feed_dict)
             for ix,grad in enumerate(gradBuffer):
                 gradBuffer[ix] = grad * 0
-        
-    def choose_action(self, sess, s):
-        #Probabilistically pick an action given our network outputs.
-        a_dist = sess.run(self.output,feed_dict={self.state_in:[s]})
-        if self.debug:
-            print(f"a_dist: {a_dist}")
-        a = np.random.choice(a_dist[0],p=a_dist[0])
-        a = np.argmax(a_dist == a)
-        return a
 
     def train(self, checkpoint = None, tqdm=tqdm, num_episodes=5000, max_ep=999):
         saver = tf.train.Saver()
@@ -319,28 +348,3 @@ class PolicyAgent():
                             print(f"Model saved in path: {save_path} at episode: {i}")
                         break
         return total_length, total_reward
-
-    def test(self, checkpoint, tqdm=tqdm, num_episodes=1, max_ep=999):
-        saver = tf.train.Saver()
-        config = tf.ConfigProto()
-        config.gpu_options.allow_growth=True
-        total_reward = []
-        total_length = []
-        with tf.Session(config=config) as sess:
-            sess.run(tf.global_variables_initializer())
-            saver.restore(sess, f"./checkpoints/model{checkpoint}.ckpt")
-            for i in tqdm(range(num_episodes)):
-                s = self.env.reset()
-                running_reward = 0
-                for j in range(max_ep):
-                    a = self.choose_action(sess, s)
-                    s1,r,d,_ = self.env.step(a)
-                    s = s1
-                    running_reward += r
-                    if d:
-                        # Update the Network and our running tally
-                        total_reward.append(running_reward)
-                        total_length.append(j)
-                        break
-
-        return total_reward, total_length
