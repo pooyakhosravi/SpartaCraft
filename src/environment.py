@@ -34,7 +34,7 @@ class MalmoEnvironment:
         for i in range(num_entity):
             x = str(random.randint(-self.ARENA_WIDTH // 2, self.ARENA_WIDTH // 2))
             z = str(random.randint(-self.ARENA_BREADTH // 2,self.ARENA_BREADTH // 2))
-            y = 207
+            y = c.PLAYER_Y
             xml += f'<DrawEntity x="{x}" y="{y}" z="{z}" type="{mob_type}" yaw="0"/>'
         return xml
 
@@ -74,14 +74,14 @@ class MalmoEnvironment:
             xml += f'''<Mob type="{entity}" reward="{c.DAMAGE_ENTITY_REWARDS[entity]}"/>'''
         return xml
 
-    def getCorner(self, index,top,left,expand=0,y=206):
+    def getCorner(self, index,top,left,expand=0,y=c.PLAYER_Y):
         ''' Return part of the XML string that defines the requested corner'''
         x = str(-(expand+self.ARENA_WIDTH//2)) if left else str(expand+self.ARENA_WIDTH//2)
         z = str(-(expand+self.ARENA_BREADTH//2)) if top else str(expand+self.ARENA_BREADTH//2)
         return 'x'+index+'="'+x+'" y'+index+'="' +str(y)+'" z'+index+'="'+z+'"'
 
 
-    def getCornerXYZ(self, top,left,expand=0,y=206):
+    def getCornerXYZ(self, top,left,expand=0,y=c.PLAYER_Y):
         ''' Return part of the XML string that defines the requested corner'''
         x = -(expand+self.ARENA_WIDTH//2) if left else expand+self.ARENA_WIDTH//2
         z = -(expand+self.ARENA_BREADTH//2) if top else expand+self.ARENA_BREADTH//2
@@ -112,9 +112,9 @@ class MalmoEnvironment:
                         <FlatWorldGenerator generatorString="{c.GENERATOR_STRING}"/>
                         
                         <DrawingDecorator>
-                            <DrawCuboid {self.getCorner("1",True,True,y=205, expand=2)} {self.getCorner("2",False,False,y=226, expand=2)} type="sea_lantern"/>
-                            <DrawCuboid {self.getCorner("1",True,True,y=206, expand=1)} {self.getCorner("2",False,False,y=226, expand=1)} type="barrier"/>
-                            <DrawCuboid {self.getCorner("1",True,True,y=207)} {self.getCorner("2",False,False,y=226)} type="air"/>
+                            <DrawCuboid {self.getCorner("1",True,True,y=int(c.PLAYER_Y - 2), expand=2)} {self.getCorner("2",False,False,y=226, expand=2)} type="sea_lantern"/>
+                            <DrawCuboid {self.getCorner("1",True,True,y=int(c.PLAYER_Y - 1), expand=1)} {self.getCorner("2",False,False,y=226, expand=1)} type="barrier"/>
+                            <DrawCuboid {self.getCorner("1",True,True,y=int(c.PLAYER_Y))} {self.getCorner("2",False,False,y=226)} type="air"/>
                             {self.getItemSpawnXML()}
                             {self.getEntitySpawnWithPositionXML()}
                             {self.getEntityRandomSpawnXML()}
