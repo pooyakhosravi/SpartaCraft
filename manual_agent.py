@@ -1,5 +1,6 @@
 # This file is the main file to be run. 
 
+from tqdm import tqdm
 import time
 import os
 import sys
@@ -24,7 +25,7 @@ except ImportError:
 
 
 # Agent parameters:
-agent_stepsize = -.55
+agent_stepsize = -.75
 agent_search_resolution = 60 # Smaller values make computation faster, which seems to offset any benefit from the higher resolution.
 agent_goal_weight = 1500
 agent_edge_weight = 0
@@ -35,8 +36,6 @@ agent_turn_weight = 0 # Negative values to penalise turning, positive to encoura
 NUM_GOALS = 20
 GOAL_TYPE = "Zombie"
 GOAL_REWARD = 100
-ARENA_WIDTH = 6
-ARENA_BREADTH = 6
 MOB_TYPE = "Cow"
 
 
@@ -87,10 +86,10 @@ def getBestAngle(entities, current_yaw, current_health):
             score += old_div(weight, float(dist**2 + 1e-3))
 
         # Calculate cost of proximity to edges:
-        distRight = (2+old_div(ARENA_WIDTH,2)) - x
-        distLeft = (-2-old_div(ARENA_WIDTH,2)) - x
-        distTop = (2+old_div(ARENA_BREADTH,2)) - z
-        distBottom = (-2-old_div(ARENA_BREADTH,2)) - z
+        distRight = (2+old_div(c.ARENA_WIDTH,2)) - x
+        distLeft = (-2-old_div(c.ARENA_WIDTH,2)) - x
+        distTop = (2+old_div(c.ARENA_BREADTH,2)) - z
+        distBottom = (-2-old_div(c.ARENA_BREADTH,2)) - z
         score += old_div(agent_edge_weight, float(distRight * distRight * distRight * distRight))
         score += old_div(agent_edge_weight, float(distLeft * distLeft * distLeft * distLeft))
         score += old_div(agent_edge_weight, float(distTop * distTop * distTop * distTop))
@@ -125,7 +124,7 @@ def getState(observed):
 
 
 
-canvas = Canvas(width=ARENA_WIDTH, breadth=ARENA_BREADTH, mobsize=8).init_canvas()
+# canvas = Canvas(mobsize=5).init_canvas()
 
 
 # if sys.version_info[0] == 2:
@@ -149,7 +148,7 @@ def run(current_life, current_yaw, best_yaw):
         print(agent_host.getUsage())
         exit(0)
 
-    environment = MalmoEnvironment(tickrate= c.MINECRAFT_DEFAULT_MS_PER_TICK, breadth = ARENA_BREADTH, width = ARENA_WIDTH, movement_commands='manual')
+    environment = MalmoEnvironment(tickrate= c.MINECRAFT_DEFAULT_MS_PER_TICK, movement_commands='manual')
     my_mission = MalmoPython.MissionSpec(environment.getMissionXML(), True)
     my_mission_record = MalmoPython.MissionRecordSpec()
 
@@ -161,7 +160,7 @@ def run(current_life, current_yaw, best_yaw):
     # my_mission_record.recordMP4(30, 2000000)
 
     # Attempt to start a mission:
-    max_retries = 20
+    max_retries = 5
     for retry in range(max_retries):
         try:
             # agent_host.startMission( my_mission, my_clients, my_mission_record, 0, "Hunter")
@@ -172,7 +171,7 @@ def run(current_life, current_yaw, best_yaw):
                 print("Error starting mission:",e)
                 exit(1)
             else:
-                time.sleep(2)
+                time.sleep(1)
 
 
     # Loop until mission starts:
@@ -197,13 +196,13 @@ def run(current_life, current_yaw, best_yaw):
     print("Starting AGENT!!")
 
     agent_host.sendCommand("chat /give @p diamond_sword 1 0 {ench:[{id:16,lvl:1000}]}")
-    agent_host.sendCommand(f"chat Hello! This is Episode {i}")
+    # agent_host.sendCommand(f"chat Hello! This is Episode {i}")
     agent_host.sendCommand("hotbar.1 1")
     agent_host.sendCommand("hotbar.1 0")
     agent_host.sendCommand("moveMouse 0 -150")
-    agent_host.sendCommand("pitch 0.1")
-    time.sleep(4*environment.AGENT_TICK_RATE / 1000)
-    agent_host.sendCommand("pitch 0")
+    # agent_host.sendCommand("pitch 0.1")
+    # time.sleep(4*environment.AGENT_TICK_RATE / 1000)
+    # agent_host.sendCommand("pitch 0")
     is_start = True
 
 
@@ -221,7 +220,10 @@ def run(current_life, current_yaw, best_yaw):
     while world_state.is_mission_running:
         world_state = agent_host.getWorldState()
         if random.random() < .75:
-            agent_host.sendCommand(f"move {-agent_stepsize}")
+            if random.random() < .65:
+                agent_host.sendCommand(f"move {agent_stepsize}")
+            else:
+                agent_host.sendCommand(f"move {-agent_stepsize/2}")
         else:
             if random.random() < .5:
                 agent_host.sendCommand("strafe .85")
@@ -236,12 +238,14 @@ def run(current_life, current_yaw, best_yaw):
             if "Life" in ob:
                 life = ob[u'Life']
                 if life < current_life:
-                    agent_host.sendCommand("chat aaaaaaaaargh!!!")
+                    # agent_host.sendCommand("chat aaaaaaaaargh!!!")
                     flash = True
+                    total_reward += (c.PLAYER_DAMAGE_TAKEN_REWARD) * (current_life - life)
                 current_life = life
             if "entities" in ob:
                 entities = ob["entities"]
-                canvas.drawMobs(entities, True)
+
+                # canvas.drawMobs(entities, True)
                 best_yaw = getBestAngle(entities, current_yaw, current_life)
                 difference = best_yaw - current_yaw
                 while difference < -180:
@@ -285,7 +289,7 @@ def run(current_life, current_yaw, best_yaw):
 
 
 if __name__ == '__main__':
-    num_repeats = 100
+    num_episodes = 100
 
     current_yaw = 0
     best_yaw = 0
@@ -294,13 +298,14 @@ if __name__ == '__main__':
     rewards = []
     steps = []
 
-    for i in range(num_repeats):
-        print(f"Running episode {i}::")
+    
+    for ep in tqdm(range(num_episodes)):
+        print(f"Running episode {ep}::")
         s, r  = run(current_life, current_yaw, best_yaw)
         steps.append(s)
         rewards.append(r)
         print()
-        print(f"::End episode {i}.")
+        print(f"::End episode {ep}.")
         # Mission has ended.
 
     print(rewards)
