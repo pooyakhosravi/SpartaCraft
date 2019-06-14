@@ -175,7 +175,7 @@ class BasicEnvironment():
             if entity["name"] in c.ENTITIES_SPAWN:
                 entity_count += 1
 
-        if entity_count == 0 or not self.world_state.is_mission_running or not ob["IsAlive"]:
+        if entity_count == 0 or not self.world_state.is_mission_running or "IsAlive" not in ob or not ob["IsAlive"]:
             self.agent_host.sendCommand("quit")
             return True
         return False
