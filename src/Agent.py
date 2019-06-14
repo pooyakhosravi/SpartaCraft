@@ -72,7 +72,7 @@ class Memory():
         self.idx = 0
         for key in ['action', 'reward']:
             self.history[key] = np.zeros(max_len)
-        self.history['grid_world'] = np.zeros((max_len, 10,10))
+        self.history['grid_world'] = np.zeros((max_len, 50,50))
         self.history['player_info'] = np.zeros((max_len, 4))
 
     def clear(self):
@@ -262,10 +262,10 @@ class VPGAgent(PolicyAgent):
         self.player_info = tf.keras.Input(shape=[self.env.observation_space.n], dtype=tf.float32, name='player_info')        
         # Feed Foward
         grid_world_feature_extraction = tf.keras.models.Sequential([
-            tf.keras.layers.Conv2D(32, 3, activation=tf.nn.relu, name='cnn1'),
+            tf.keras.layers.Conv2D(128, 3, activation=tf.nn.relu, name='cnn1'),
             tf.keras.layers.MaxPool2D(),
             tf.keras.layers.Dropout(.2),
-            tf.keras.layers.Conv2D(16, 3, activation=tf.nn.relu, name='cnn2'),
+            tf.keras.layers.Conv2D(64, 3, activation=tf.nn.relu, name='cnn2'),
             tf.keras.layers.MaxPool2D(),
             tf.keras.layers.Dropout(.2),
             tf.keras.layers.Flatten(),

@@ -81,7 +81,7 @@ class BasicEnvironment():
     def __init__(self, ms_per_tick = c.MINECRAFT_DEFAULT_MS_PER_TICK, debug=False):
         self.scale_factor = 2
         self.action_space = SpartosActionSpace() # BasicDiscreteActionSpace() 
-        self.observation_space = BasicObservationSpace(4, (10,10))
+        self.observation_space = BasicObservationSpace(4, (50,50))
         self.debug = debug
         self.ms_per_tick = ms_per_tick
         self.goal_count = -1
