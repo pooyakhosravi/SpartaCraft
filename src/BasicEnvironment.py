@@ -52,6 +52,7 @@ def startMission(ms_per_tick, max_retries = 20, debug=False):
     agent_host.sendCommand(f"chat Here we go again!")
     agent_host.sendCommand("hotbar.1 1")
     agent_host.sendCommand("hotbar.1 0")
+    agent_host.sendCommand("moveMouse 0 -50")
     return agent_host
 
 
