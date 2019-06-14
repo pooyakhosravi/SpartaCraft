@@ -81,6 +81,7 @@ class BasicEnvironment():
         self.observation_space = BasicObservationSpace(4, (10,10))
         self.debug = debug
         self.ms_per_tick = ms_per_tick
+        self.goal_count = -1
 
     def reset(self):
         self.agent_host = startMission(self.ms_per_tick, debug=self.debug, max_retries=100)
@@ -100,7 +101,8 @@ class BasicEnvironment():
         
         self.world_state, observed = wait_for_observation(self.agent_host, self.ms_per_tick)
         state = self.get_state(observed)
-        reward = self.get_reward()
+
+        reward = self.get_reward(observed)
         done = self.get_done(observed)
 
         if self.debug:
@@ -125,6 +127,9 @@ class BasicEnvironment():
                 else:
                     enemy_locations.append(entity_location)
 
+            if self.goal_count == -1:
+                self.goal_count = len([ent for ent in observed["entities"] if ent["name"] == "ZOMBIE"])
+
             max_x_dist = np.round(self.observation_space.shape[0] // 2)
             max_z_dist = np.round(self.observation_space.shape[1] // 2)
             #print(f"max_dist: ({max_x_dist}, {max_z_dist})")
@@ -138,9 +143,21 @@ class BasicEnvironment():
         return (grid_world, player_state)
 
 
-    def get_reward(self):
+    def get_reward(self, ob):
         if not self.world_state:
             return 0.0
+
+        reward = 0
+        rem_goals = 0
+        if ob:
+            for entity in ob["entities"]:
+                if entity["name"] == "ZOMBIE":
+                    rem_goals += 1
+
+            if rem_goals < self.goal_count:
+                reward += (self.goal_count - rem_goals)*c.ENTITY_KILLED_REWARD["ZOMBIE"]
+                self.goal_count = rem_goals
+        
         if self.world_state.number_of_rewards_since_last_state > 0:
             reward = self.world_state.rewards[-1].getValue()
             return reward
