@@ -8,7 +8,7 @@ import os
 MOB_TYPE = "Pig"
 
 MINECRAFT_DEFAULT_MS_PER_TICK = 30
-TRAINING_DEFAULT_MS_PER_TICK = 2
+TRAINING_DEFAULT_MS_PER_TICK = MINECRAFT_DEFAULT_MS_PER_TICK
 AGENT_TICK_RATE_MULTIPLIER = 3
 
 MANUAL_MOVEMENT_COMMANDS = "<ContinuousMovementCommands turnSpeedDegs=\"480\"/><HumanLevelCommands/><DiscreteMovementCommands/>"
@@ -19,7 +19,7 @@ RECORD_FILENAME = os.getcwd() + '/Recordings/record.tgz'
 PLAYER_NAME = "Spartos"
 
 
-ENTITIES_SPAWN = {"Cow": 0, "Zombie": 22} # {"Pig": 20, "Cow": 20, "Zombie":5}
+ENTITIES_SPAWN = {"Cow": 0, "Zombie": 12} # {"Pig": 20, "Cow": 20, "Zombie":5}
 ITEMS_SPAWN = {} #{"carrot": 30, "apple": 10}
 
 

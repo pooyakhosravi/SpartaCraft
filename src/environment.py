@@ -153,7 +153,7 @@ class MalmoEnvironment:
                     </ServerHandlers>
                     </ServerSection>
                     
-                    <AgentSection mode="Spectator">
+                    <AgentSection mode="Survival">
                     <Name>{c.PLAYER_NAME}</Name>
                     <AgentStart>
                     <Inventory />

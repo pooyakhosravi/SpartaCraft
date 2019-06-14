@@ -12,6 +12,11 @@ class BasicActionSpace(ActionSpace):
     def __init__(self):
         moves = ["forward 1", "back 1", "left 1", "right 1", "attack 1", "attack 0"]
         super(BasicActionSpace, self).__init__(moves)
+
+class SpartosActionSpace(ActionSpace):
+    def __init__(self):
+        moves = ["forward 1", "back 1", "left 1", "right 1", "moveMouse 50 0", "moveMouse -50 0"]
+        super(SpartosActionSpace, self).__init__(moves)
         
 
 class BasicDiscreteActionSpace(ActionSpace):

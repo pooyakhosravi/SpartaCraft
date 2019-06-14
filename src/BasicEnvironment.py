@@ -1,4 +1,4 @@
-from src.ActionSpace import BasicActionSpace, BasicDiscreteActionSpace
+from src.ActionSpace import *
 from src.ObservationSpace import BasicObservationSpace
 from src.environment import MalmoEnvironment
 import src.constants as c
@@ -52,8 +52,6 @@ def startMission(ms_per_tick, max_retries = 20, debug=False):
     agent_host.sendCommand(f"chat Here we go again!")
     agent_host.sendCommand("hotbar.1 1")
     agent_host.sendCommand("hotbar.1 0")
-    agent_host.sendCommand("moveMouse 0 -250")
-    # agent_host.sendCommand("attack 1")
     return agent_host
 
 
@@ -79,8 +77,8 @@ def wait_for_observation(agent_host, ms_per_tick, max_retries=20):
 class BasicEnvironment():
     def __init__(self, ms_per_tick = c.MINECRAFT_DEFAULT_MS_PER_TICK, debug=False):
         self.scale_factor = 2
-        self.action_space = BasicActionSpace() # BasicDiscreteActionSpace() 
-        self.observation_space = BasicObservationSpace(len(self.get_state(None)))
+        self.action_space = SpartosActionSpace() # BasicDiscreteActionSpace() 
+        self.observation_space = BasicObservationSpace(4, (10,10))
         self.debug = debug
         self.ms_per_tick = ms_per_tick
 
@@ -98,6 +96,7 @@ class BasicEnvironment():
         if action in moveactions.keys():
             self.agent_host.sendCommand(moveactions[action])
         self.agent_host.sendCommand(action)
+        self.agent_host.sendCommand("attack 1")
         
         self.world_state, observed = wait_for_observation(self.agent_host, self.ms_per_tick)
         state = self.get_state(observed)
@@ -109,24 +108,34 @@ class BasicEnvironment():
         return state, reward, done, None
     
     
-    def get_state(self, observed):
-        xpos = None
-        zpos = None
-        motionX = None
-        motionY = None
+    def get_state(self, observed=None):
+        grid_world = np.zeros(self.observation_space.shape)
+        #print(f"grid_world.shape: {grid_world.shape}")
+        player_state = np.zeros(self.observation_space.n)
+        enemy_locations = []
         if observed:
-            life = observed["Life"]
-            xpos = observed["XPos"]
-            ypos = observed["YPos"]
-            zpos = observed["ZPos"]
-            pitch = observed["Pitch"]
-            yaw = observed["Yaw"]
             for entity in observed["entities"]:
+                entity_location = np.round((entity['x'], entity['z']))
                 if entity["name"] == c.PLAYER_NAME:
-                    motionX = entity["motionX"]
-                    motionY = entity["motionY"]
-                    break
-        return (xpos, zpos, motionX, motionY)
+                    player_location = entity_location
+                    player_state[0] = entity['motionX']
+                    player_state[1] = entity['motionZ']
+                    player_state[2] = np.cos(entity['yaw'])
+                    player_state[3] = np.sin(entity['yaw'])
+                else:
+                    enemy_locations.append(entity_location)
+
+            max_x_dist = np.round(self.observation_space.shape[0] // 2)
+            max_z_dist = np.round(self.observation_space.shape[1] // 2)
+            #print(f"max_dist: ({max_x_dist}, {max_z_dist})")
+            for enemy_location in enemy_locations:
+                manhattan_dist = np.array(player_location - enemy_location, dtype=np.int32)
+                if np.abs(manhattan_dist[0]) < max_x_dist and np.abs(manhattan_dist[1]) < max_z_dist:
+                    manhattan_dist[0] = manhattan_dist[0] + max_x_dist
+                    manhattan_dist[1] = manhattan_dist[1] + max_z_dist
+                    #print(f"dist: {manhattan_dist}")
+                    grid_world[manhattan_dist[0], manhattan_dist[1]] += 1
+        return (grid_world, player_state)
 
 
     def get_reward(self):

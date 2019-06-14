@@ -67,24 +67,28 @@ class QTable():
 
 class Memory():
     def __init__(self, max_len=2000):
-        self.history = deque(maxlen=max_len)
+        self.max_len = max_len
+        self.history = {}
+        self.idx = 0
+        for key in ['action', 'reward']:
+            self.history[key] = np.zeros(max_len)
+        self.history['grid_world'] = np.zeros((max_len, 10,10))
+        self.history['player_info'] = np.zeros((max_len, 4))
 
     def clear(self):
-        self.history.clear()
+        self.idx = 0
 
-    def remember(self, state, action, reward, next_state, done):
-        self.history.append((state, action, reward, next_state, done))
+    def remember(self, state, action, reward):
+        if self.idx >= self.max_len:
+            pass
+        self.history['grid_world'][self.idx] = state[0]
+        self.history['player_info'][self.idx] = state[1]
+        self.history['action'][self.idx] = action
+        self.history['reward'][self.idx] = reward
+        self.idx += 1
 
-    def get_minibatch(self, batch_size):
-        return random.sample(self.history, min(batch_size, len(self.history)))
-
-    def discount_rewards(self, gamma=.9):
-        ep_history = np.array(self.history)
-        running_add = 0
-        for t in reversed(range(ep_history[:,2].size)):
-            running_add = running_add * gamma + ep_history[t,2]
-            ep_history[t,2] = running_add
-        return ep_history
+    def __getitem__(self, key):
+        return self.history[key][:self.idx]
 
 class QLearning():
     def __init__(self, env, q_function):
@@ -206,17 +210,16 @@ class PolicyAgent():
     def __init__(self, env, lr, gamma, debug=False):
         self.lr = lr
         self.env = env
-        self.s_size = self.env.observation_space.shape[0]
         self.a_size = self.env.action_space.n
         self.gamma = gamma
         self.debug = debug
         self.memory = Memory()
-        self.state_in = tf.keras.Input(shape=[self.s_size],dtype=tf.float32)
         self.output = None # Child must implement
 
     def choose_action(self, sess, s):
         #Probabilistically pick an action given our network outputs.
-        a_dist = sess.run(self.output,feed_dict={self.state_in:[s]})
+        grid_world, player_info = s
+        a_dist = sess.run(self.output,feed_dict={self.grid_world:[grid_world],self.player_info:[player_info]})
         if self.debug:
             print(f"a_dist: {a_dist}")
         a = np.random.choice(a_dist[0],p=a_dist[0])
@@ -255,16 +258,26 @@ class VPGAgent(PolicyAgent):
         self._create_model()
         
     def _create_model(self):
-        print(f"s_size: {self.s_size}, h_size: {self.h_size}, a_size: {self.a_size}")
-        state_in_shape = [None,self.env.observation_space.shape[0]]
-        print(f"state_in shape: {state_in_shape}")
-        
+        self.grid_world = tf.keras.Input(shape=self.env.observation_space.shape, dtype=tf.float32, name='grid_world')
+        self.player_info = tf.keras.Input(shape=[self.env.observation_space.n], dtype=tf.float32, name='player_info')        
         # Feed Foward
+        grid_world_feature_extraction = tf.keras.models.Sequential([
+            tf.keras.layers.Conv2D(32, 3, activation=tf.nn.relu, name='cnn1'),
+            tf.keras.layers.MaxPool2D(),
+            tf.keras.layers.Dropout(.2),
+            tf.keras.layers.Conv2D(16, 3, activation=tf.nn.relu, name='cnn2'),
+            tf.keras.layers.MaxPool2D(),
+            tf.keras.layers.Dropout(.2),
+            tf.keras.layers.Flatten(),
+        ])
         model = tf.keras.models.Sequential([
             tf.keras.layers.Dense(self.h_size, activation=tf.nn.relu, name='dense1'),
             tf.keras.layers.Dense(self.a_size, activation=tf.nn.softmax, name='dense2')
         ])
-        self.output = model(self.state_in)
+        grid_world_features = grid_world_feature_extraction(tf.expand_dims(self.grid_world, -1))
+        print(f"grid_world_features.shape: {grid_world_features.shape}, player_info.shape: {self.player_info.shape}")
+        feature_vec = tf.concat(axis=1, values=[grid_world_features, self.player_info],)
+        self.output = model(feature_vec)
         print(f"Output Shape: {self.output.shape}")
         self.chosen_action = tf.argmax(self.output,1)
 
@@ -297,10 +310,15 @@ class VPGAgent(PolicyAgent):
         self.update_batch = optimizer.apply_gradients(zip(self.gradient_holders,trainable_variables))
     
     def update(self, sess, gradBuffer, i, update_frequency=5):
-        ep_history = np.array(self.memory.history)
-        ep_history[:,2] = discount_rewards(ep_history[:,2], self.gamma)
-        feed_dict={self.discounted_rewards_holder:ep_history[:,2],
-                self.chosen_action_holder:ep_history[:,1],self.state_in:np.vstack(ep_history[:,0])}
+        rewards = self.memory['reward']
+        actions = self.memory['action']
+        grid_world = self.memory['grid_world']
+        player_info = self.memory['player_info']
+        discounted_rewards = discount_rewards(rewards, self.gamma)
+        feed_dict={self.discounted_rewards_holder:discounted_rewards,
+                self.chosen_action_holder:actions,
+                self.grid_world:grid_world,
+                self.player_info:np.vstack(player_info)}
         grads = sess.run(self.gradients, feed_dict=feed_dict)
         for idx,grad in enumerate(grads):
             gradBuffer[idx] += grad
@@ -334,7 +352,7 @@ class VPGAgent(PolicyAgent):
                 for j in range(max_ep):
                     a = self.choose_action(sess, s)
                     s1,r,d,_ = self.env.step(a)
-                    self.memory.remember(s, a, r, s1, d)
+                    self.memory.remember(s, a, r)
                     s = s1
                     running_reward += r
                     if d:

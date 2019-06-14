@@ -4,5 +4,5 @@ class ObservationSpace:
         self.shape=shape
 
 class BasicObservationSpace(ObservationSpace):
-    def __init__(self, length):
-        super(BasicObservationSpace, self).__init__(None, (length,))
+    def __init__(self, n, shape):
+        super(BasicObservationSpace, self).__init__(n, shape)
