@@ -69,6 +69,8 @@ def wait_for_observation(agent_host, ms_per_tick, max_retries=20):
         if retry == max_retries - 1:
             print(f"Error: Did not receive observation after {max_retries} times")
             return None, None
+        if retry > 0:
+            print(f"Skipped {retry} observations")
 
     msg = world_state.observations[-1].text
     ob = json.loads(msg)
