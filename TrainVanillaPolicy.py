@@ -9,7 +9,7 @@ if __name__ == "__main__":
     tf.reset_default_graph() #Clear the Tensorflow graph.
     agent = VPGAgent(1e-2, env, 8, debug=False)
 
-    jList, rList = agent.train(tqdm=tqdm, num_episodes=5, checkpoint=None)
+    jList, rList = agent.train(tqdm=tqdm, num_episodes=1000, checkpoint=None)
     with open("training_results.txt", "a") as f:
         f.write(" ".join(map(str, jList)))
         f.write("\n")

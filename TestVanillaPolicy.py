@@ -10,7 +10,7 @@ if __name__ == "__main__":
     agent = VPGAgent(1e-2, env, 8, debug=False)
 
     #agent.train(tqdm=tqdm, num_episodes=500)
-    reward_list, stepslist = agent.test(checkpoint=50, tqdm=tqdm, num_episodes=20)
+    reward_list, stepslist = agent.test(checkpoint=1000, tqdm=tqdm, num_episodes=20)
     with open("testing_results.txt", "a") as f:
         f.write(" ".join(map(str, reward_list)))
         f.write("\n")
